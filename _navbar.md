@@ -1,2 +1,2 @@
 * [:us: English](/)
-* [:thailand: ภาษาไทย](/th-TH/)
+* [:thailand: ภาษาไทย](/th-th/)
