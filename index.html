@@ -21,10 +21,32 @@
       --theme-color-secondary: #4b1d9c;
       --base-text-color: #1f1a2b;
       --sidebar-width: 270px;
+      --nav-offset: 96px;
     }
 
     body {
       color: var(--base-text-color);
+    }
+
+    body {
+      scroll-padding-top: var(--nav-offset);
+    }
+    .markdown-section h1,
+    .markdown-section h2,
+    .markdown-section h3,
+    .markdown-section h4,
+    .markdown-section h5,
+    .markdown-section h6,
+    .markdown-section [id] {
+      scroll-margin-top: var(--nav-offset);
+    }
+    .markdown-section [id]::before {
+      content: '';
+      display: block;
+      height: var(--nav-offset);
+      margin-top: calc(-1 * var(--nav-offset));
+      visibility: hidden;
+      pointer-events: none;
     }
 
     nav.app-nav {
