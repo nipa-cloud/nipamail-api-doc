@@ -4,7 +4,7 @@
 
 ### Request
 ```http
-POST /v1/transactional/messages
+POST /v1/messages
 ```
 
 #### Headers
@@ -32,7 +32,7 @@ POST /v1/transactional/messages
         "content": "<base64 payload or asset id>",
         "file_name": "<download name>"
       }
-    ],
+    ]
   }
 }
 ```
@@ -178,7 +178,7 @@ When catastrophic errors occured, throws `InternalServerError`
 Encode your HTML in base64 (no newlines) and place it in `message.html`.
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -197,7 +197,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 Provide a stored `template_id` and pass values to render inside the template.
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -220,7 +220,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 Reference an uploaded asset by ID for attachments.
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -250,7 +250,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 Inline a file by base64-encoding it and setting `attachments[].type` to `RAW`.
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -278,7 +278,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 ## Inquiry the transactional message status
 ### Request
 ```http
-GET /v1/transactional/messages/{transactional_message_id}
+GET /v1/messages/{transactional_message_id}
 ```
 #### Path parameters
 | Field | Required | Description |

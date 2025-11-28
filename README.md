@@ -31,7 +31,7 @@ Use the returned `access_token` as `Bearer <TOKEN>` in the next steps.
 2) Send a transactional email (inline HTML) 
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,6 +50,6 @@ Swap `template_id` and `template_values` in place of `html` if you want to rende
 3) Check tenant credits  
 
 ```bash
-curl -X GET https://api.nipamail.com/v1/tenants/me/credits \
+curl -X GET https://api.nipamail.com/v1/credits \
   -H "Authorization: Bearer <TOKEN>"
 ```

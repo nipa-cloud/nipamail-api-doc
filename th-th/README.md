@@ -33,7 +33,7 @@ curl -X POST https://api.nipamail.com/v1/auth/tokens \
 2) ส่งอีเมลธุรกรรม (HTML ฝัง)  
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -52,7 +52,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 3) ตรวจสอบเครดิตของ Tenant
 
 ```bash
-curl -X GET https://api.nipamail.com/v1/tenants/me/credits \
+curl -X GET https://api.nipamail.com/v1/credits \
   -H "Authorization: Bearer <TOKEN>"
 
 ```

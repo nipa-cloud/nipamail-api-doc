@@ -3,7 +3,7 @@
 ## ตรวจสอบยอดเครดิตของผู้เช่า
 ### คำขอ
 ```http
-GET /v1/tenants/me/credits
+GET /v1/credits
 ```
 #### เฮดเดอร์
 | ฟิลด์ | บังคับ | คำอธิบาย |
@@ -18,18 +18,15 @@ GET /v1/tenants/me/credits
 
 ```json
 {
-  "credits": {
-    "available": <number>,
-    "reserved": <number>,
-  }
+  "available": <number>,
+  "reserved": <number>
 }
 
 ```
 | ฟิลด์ | ชนิด | คำอธิบาย |
 | --- | --- | --- |
-| `credits` | object | สรุปเครดิตของผู้เช่า |
-| `credits.available` | number | เครดิตที่สามารถใช้ได้ทันที |
-| `credits.reserved` | number | เครดิตที่กันไว้สำหรับธุรกรรมที่รอดำเนินการ |
+| `available` | number | เครดิตที่สามารถใช้ได้ทันที |
+| `reserved` | number | เครดิตที่กันไว้สำหรับธุรกรรมที่รอดำเนินการ |
 
 
 **401 – Unauthorized**

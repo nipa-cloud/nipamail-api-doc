@@ -4,7 +4,7 @@
 
 ### คำขอ
 ```http
-POST /v1/transactional/messages
+POST /v1/messages
 ```
 
 #### เฮดเดอร์
@@ -32,7 +32,7 @@ POST /v1/transactional/messages
         "content": "<base64 payload or asset id>",
         "file_name": "<download name>"
       }
-    ],
+    ]
   }
 }
 ```
@@ -178,7 +178,7 @@ POST /v1/transactional/messages
 เข้ารหัส HTML เป็น base64 (ไม่มีบรรทัดใหม่) แล้วใส่ใน `message.html`
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -197,7 +197,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 ใช้ `template_id` ที่บันทึกไว้ พร้อมส่งค่าเรนเดอร์ใน `template_values`
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -220,7 +220,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 อ้างอิงไฟล์แนบที่อัปโหลดแล้วด้วย Asset ID
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -250,7 +250,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 เข้ารหัสไฟล์เป็น base64 แล้วตั้ง `attachments[].type` เป็น `RAW`
 
 ```bash
-curl -X POST https://api.nipamail.com/v1/transactions \
+curl -X POST https://api.nipamail.com/v1/messages \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -278,7 +278,7 @@ curl -X POST https://api.nipamail.com/v1/transactions \
 ## สอบถามสถานะข้อความธุรกรรม
 ### คำขอ
 ```http
-GET /v1/transactional/messages/{transactional_message_id}
+GET /v1/messages/{transactional_message_id}
 ```
 #### พารามิเตอร์ในพาธ
 | ฟิลด์ | บังคับ | คำอธิบาย |
