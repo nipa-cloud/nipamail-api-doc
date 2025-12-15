@@ -361,23 +361,44 @@ GET /v1/messages/{transactional_message_id}
 | `status_logs[].error_message` | string | ข้อความผิดพลาด ถ้ามี |
 
 #### ความหมายของ `MessageLogStatus`
+เหตุผลบาวน์ซ์แบบละเอียดดึงจากกฎของตัวจัดประเภทใน `yml.yml` และอาจแสดงใน `status` หรือ `status_logs[].status`
 | สถานะ | ความหมาย |
 | --- | --- |
 | `Created` | บันทึกคำขอแล้ว แต่ยังไม่ส่งไปผู้ให้บริการ |
 | `Submitting` | กำลังส่งต่อไปยังผู้ให้บริการ |
 | `Accepted` | ผู้ให้บริการรับคำขอแล้ว |
 | `Delivered` | ผู้ให้บริการยืนยันว่าปลายทางรับข้อความแล้ว |
-| `HardBounce` | ล้มเหลวถาวร (อีเมลไม่ถูกต้อง ถูกนโยบายบล็อก) |
-| `SoftBounce` | ล้มเหลวชั่วคราว (กล่องเต็ม หรือข้อผิดพลาดชั่วคราว) |
-| `ProviderRejected` | ผู้ให้บริการปฏิเสธนอกรูปแบบ bounce |
 | `Deferred` | ผู้ให้บริการเลื่อนการส่ง จะลองใหม่ภายหลัง |
-| `Spam` | ผู้ให้บริการจัดเป็นสแปม |
+| `Delayed` | ระบบหรือผู้ให้บริการหน่วงการส่ง |
 | `TimedOut` | ส่งไม่สำเร็จภายในเวลาที่กำหนด |
 | `Feedback` | ผู้รับแจ้งปัญหา/ร้องเรียน (feedback loop) |
-| `Delayed` | ระบบหรือผู้ให้บริการหน่วงการส่ง |
 | `TechnicalError` | ข้อผิดพลาดภายในระบบ |
 | `InsufficientCredit` | ส่งไม่สำเร็จเพราะเครดิตไม่พอ |
-| `InvalidRecipient` | อีเมลผู้รับไม่ผ่านการตรวจสอบ |
+
+**Bounce statuses**
+ข้อความอาจประสบปัญหาที่จัดอยู่ในกลุ่มบาวน์ซ์ดังนี้:
+| สถานะ | ความหมาย | ประเภทบาวน์ซ์ | ลองส่งซ้ำได้ | ตัดเครดิต |
+| --- | --- | --- | --- | --- |
+| `HardBounce` | ล้มเหลวถาวร ไม่ควรลองส่งซ้ำ | Hard | No | Yes |
+| `SoftBounce` | ล้มเหลวชั่วคราว สามารถลองใหม่ | Soft | Yes | No |
+| `InvalidRecipient` | อีเมลผู้รับไม่ถูกต้องหรือไม่มีอยู่จริง | Hard | No | Yes |
+| `BadDomain` | โดเมนผู้รับตั้งค่าไม่ถูกต้องหรือไม่มี MX | Hard | No | Yes |
+| `InactiveMailbox` | กล่องจดหมายถูกปิดใช้งาน ระงับ หรือปิดบัญชี | Hard | No | Yes |
+| `InvalidSender` | ผู้ส่ง/โดเมนไม่อนุญาตหรือไม่ผ่านการยืนยัน | Hard | No | Yes |
+| `QuotaIssues` | กล่องจดหมายผู้รับเต็มหรือเกินขนาดไฟล์แนบ | Soft | Yes | No |
+| `NoAnswerFromHost` | เซิร์ฟเวอร์ปลายทางไม่ตอบสนองระหว่างส่ง | Hard | No | Yes |
+| `BadConnection` | การเชื่อมต่อกับโฮสต์ปลายทางล้มเหลวหรือหลุด | Soft | Yes | No |
+| `DNSFailure` | ค้นหา DNS ของโดเมนผู้รับล้มเหลว (เช่น ไม่มี MX) | Hard | No | Yes |
+| `RoutingErrors` | ผู้ให้บริการปฏิเสธรีเลย์หรือหาทางส่งไม่ได้ | Soft | Yes | No |
+| `TransientFailure` | ความล้มเหลวชั่วคราวที่ไม่ระบุ สามารถลองใหม่ | Soft | Yes | No |
+| `MessageExpired` | หมดเวลาส่งก่อนที่ผู้ให้บริการจะส่งสำเร็จ | Hard | No | Yes |
+| `ProtocolErrors` | ลำดับ/ไวยากรณ์คำสั่ง SMTP ถูกปฏิเสธ | Soft | Yes | No |
+| `AuthenticationFailed` | ตรวจสอบตัวตน/DMARC/SPF ไม่ผ่าน | Soft | Yes | No |
+| `PolicyRelated` | ถูกปฏิเสธด้วยเหตุผลเชิงนโยบายหรือ AUP | Soft | No | Yes |
+| `SpamContent` | เนื้อหาข้อความถูกจัดเป็นสแปมหรือไวรัส | Soft | No | Yes |
+| `SpamFiltered` | ผู้ให้บริการรับไว้แต่กรอง/กักกันจาก heuristics สแปม | Soft | No | Yes |
+| `SpamBlock` | ปิดกั้นเพราะชื่อเสียงของผู้ส่ง/IP/โดเมน | Soft | No | Yes |
+| `ProviderRejected` | ผู้ให้บริการปฏิเสธนอกรูปแบบบาวน์ซ์ | Soft | No | Yes |
 
 **401 – Unauthorized**
 

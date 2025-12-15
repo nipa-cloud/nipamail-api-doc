@@ -367,17 +367,37 @@ Returns the targeted transactional message detail.
 | `Submitting` | Currently being handed off to the provider. |
 | `Accepted` | Provider acknowledged receipt of the message. |
 | `Delivered` | Provider confirmed the recipient’s server accepted the message. |
-| `HardBounce` | Permanent failure (invalid address, policy rejection). |
-| `SoftBounce` | Temporary failure (mailbox full, transient error). |
-| `ProviderRejected` | Provider actively rejected the message outside of bounce semantics. |
 | `Deferred` | Provider deferred the message; will retry later. |
-| `Spam` | Provider flagged the message as spam. |
+| `Delayed` | Message is intentionally delayed or postponed by the system/provider. |
 | `TimedOut` | Delivery attempts timed out before completion. |
 | `Feedback` | Recipient issued a feedback/complaint (feedback loop). |
-| `Delayed` | Message is intentionally delayed or postponed by the system/provider. |
 | `TechnicalError` | Internal system error prevented sending. |
 | `InsufficientCredit` | Sending failed because the tenant lacks credits. |
-| `InvalidRecipient` | Provided recipient address failed validation. |
+
+**Bounce statuses**
+Messages may encountered the issues catagorized as bounce, described by the following:
+| Status | Meaning | Bounce type | Retry allowed | Credit charged |
+| --- | --- | --- | --- | --- |
+| `HardBounce` | Provider returned a permanent failure that should not be retried. | Hard | No | Yes |
+| `SoftBounce` | Provider returned a temporary failure; message may be retried. | Soft | Yes | No |
+| `InvalidRecipient` | Recipient address is invalid or the mailbox does not exist. | Hard | No | Yes |
+| `BadDomain` | Recipient domain is misconfigured or missing valid MX records. | Hard | No | Yes |
+| `InactiveMailbox` | Mailbox exists but is disabled, suspended, or closed. | Hard | No | Yes |
+| `InvalidSender` | Sender/domain is not allowed or fails sender validation. | Hard | No | Yes |
+| `QuotaIssues` | Recipient mailbox is full or exceeds storage/attachment limits. | Soft | Yes | No |
+| `NoAnswerFromHost` | Remote host did not respond during delivery attempts. | Hard | No | Yes |
+| `BadConnection` | Connection to the recipient host failed or was dropped. | Soft | Yes | No |
+| `DNSFailure` | DNS lookup for the recipient domain failed (e.g., no MX). | Hard | No | Yes |
+| `RoutingErrors` | Provider refused to relay or could not route to the recipient. | Soft | Yes | No |
+| `TransientFailure` | Provider returned a temporary, unspecified failure; safe to retry. | Soft | Yes | No |
+| `MessageExpired` | Delivery window elapsed before the provider could deliver. | Hard | No | Yes |
+| `ProtocolErrors` | SMTP command sequence or syntax was rejected. | Soft | Yes | No |
+| `AuthenticationFailed` | Authentication/DMARC/SPF checks failed for the sender. | Soft | Yes | No |
+| `PolicyRelated` | Rejected by provider policy or acceptable use restrictions. | Soft | No | Yes |
+| `SpamContent` | Message content was classified as spam or virus. | Soft | No | Yes |
+| `SpamFiltered` | Provider accepted but filtered or quarantined based on spam heuristics. | Soft | No | Yes |
+| `SpamBlock` | Delivery blocked due to sender/IP/domain reputation or blocklists. | Soft | No | Yes |
+| `ProviderRejected` | Provider actively rejected the message outside of bounce semantics. | Soft | No | Yes |
 
 **401 – Unauthorized**
 
