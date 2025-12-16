@@ -386,11 +386,11 @@ Returns the targeted transactional message detail.
 | `Feedback`           | Recipient issued a feedback/complaint (feedback loop).                |
 | `TechnicalError`     | Internal system error prevented sending.                              |
 | `InsufficientCredit` | Sending failed because the tenant lacks credits.                      |
-| `Blocked`            | The                       |
+| `Blocked`            | The recipient is blocked by our blocklist.                            |
 
 **Bounce statuses**
 
-Messages may encounter issues categorized as bounces; credit charging follows the community classifier annotations.
+Messages may encounter issues categorized as bounces.
 
 | Status                 | Meaning                                                                 | Bounce type | Retry allowed | Credit charged             |
 | ---------------------- | ----------------------------------------------------------------------- | ----------- | ------------- | -------------------------- |
