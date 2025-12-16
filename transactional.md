@@ -375,7 +375,8 @@ Returns the targeted transactional message detail.
 | `InsufficientCredit` | Sending failed because the tenant lacks credits. |
 
 **Bounce statuses**
-Messages may encountered the issues catagorized as bounce, described by the following:
+Messages may encountered the issues catagorized as bounce, described by the following
+
 | Status | Meaning | Bounce type | Retry allowed | Credit charged |
 | --- | --- | --- | --- | --- |
 | `HardBounce` | Provider returned a permanent failure that should not be retried. | Hard | No | Yes |
