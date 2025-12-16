@@ -3,17 +3,20 @@
 ## Send the transactional message
 
 ### Request
+
 ```http
 POST /v1/messages
 ```
 
 #### Headers
-| Field | Required | Description |
-| --- | --- | --- |
-| `Content-Type` | Yes | `application/json` |
-| `Authorization` | Yes | Use `Bearer <TOKEN>` |
+
+| Field           | Required | Description          |
+| --------------- | -------- | -------------------- |
+| `Content-Type`  | Yes      | `application/json`   |
+| `Authorization` | Yes      | Use `Bearer <TOKEN>` |
 
 #### Request body
+
 ```json
 {
   "type": "EMAIL" | "SMS",
@@ -37,18 +40,18 @@ POST /v1/messages
 }
 ```
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `type` | Yes | `EMAIL` for email message |
-| `message.sender` | Yes | Sender domain registered. |
-| `message.recipient` | Yes | Single recipient email address. |
-| `message.subject` | Yes | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'. |
-| `message.template_id` | Conditional | Provide when not supplying `message.html`; references stored template. |
-| `message.html` | Conditional | Base64-encoded HTML content when no template is referenced. |
-| `message.template_values` | No | Key/value map injected into template rendering. |
-| `message.attachments[].type` | No | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
-| `message.attachments[].content` | No | Payload or asset identifier depending on `type`. |
-| `message.attachments[].file_name` | No | Friendly download filename surfaced to recipients. |
+| Field                             | Required    | Description                                                                                                   |
+| --------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| `type`                            | Yes         | `EMAIL` for email message                                                                                     |
+| `message.sender`                  | Yes         | Sender domain registered.                                                                                     |
+| `message.recipient`               | Yes         | Single recipient email address.                                                                               |
+| `message.subject`                 | Yes         | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'.         |
+| `message.template_id`             | Conditional | Provide when not supplying `message.html`; references stored template.                                        |
+| `message.html`                    | Conditional | Base64-encoded HTML content when no template is referenced.                                                   |
+| `message.template_values`         | No          | Key/value map injected into template rendering.                                                               |
+| `message.attachments[].type`      | No          | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
+| `message.attachments[].content`   | No          | Payload or asset identifier depending on `type`.                                                              |
+| `message.attachments[].file_name` | No          | Friendly download filename surfaced to recipients.                                                            |
 
 ---
 
@@ -66,12 +69,13 @@ Message created.
   "cost": <number>
 }
 ```
-| Field | Description |
-| --- | --- |
-| `id` | Transactional message ID |
-| `status` | Message status |
-| `updated_at` | Timestamp of latest updated. |
-| `cost` | Credit consumed (stored as Integer, multiply by 100). |
+
+| Field        | Description                                           |
+| ------------ | ----------------------------------------------------- |
+| `id`         | Transactional message ID                              |
+| `status`     | Message status                                        |
+| `updated_at` | Timestamp of latest updated.                          |
+| `cost`       | Credit consumed (stored as Integer, multiply by 100). |
 
 **400 – Bad Request**
 
@@ -108,7 +112,7 @@ The specified credentials is invalid, or restricted by CIDR.
 
 **404 – Not Found**
 
-When the `template_id` specified is not exists, throws `TemplateNotFoundError`. 
+When the `template_id` specified is not exists, throws `TemplateNotFoundError`.
 
 ```json
 {
@@ -119,7 +123,7 @@ When the `template_id` specified is not exists, throws `TemplateNotFoundError`.
 
 **404 – Not Found**
 
-When one or more attachments referenced in the `attachments[].content` with type `ASSET` is not exists in the asset manager, throws `AssetNotFoundError`. 
+When one or more attachments referenced in the `attachments[].content` with type `ASSET` is not exists in the asset manager, throws `AssetNotFoundError`.
 
 ```json
 {
@@ -149,7 +153,6 @@ When the credit balance on the account is insufficient, throws `InsufficientCred
   "message": "Your credit balance is insufficient."
 }
 ```
-
 
 **406 – Not Acceptable**
 
@@ -274,20 +277,28 @@ curl -X POST https://api.nipamail.com/v1/messages \
     }
   }'
 ```
+
 ---
+
 ## Inquiry the transactional message status
+
 ### Request
+
 ```http
 GET /v1/messages/{transactional_message_id}
 ```
+
 #### Path parameters
-| Field | Required | Description |
-| --- | --- | --- |
-| `transactional_message_id` | Yes | Targeted transactional message ID |
+
+| Field                      | Required | Description                       |
+| -------------------------- | -------- | --------------------------------- |
+| `transactional_message_id` | Yes      | Targeted transactional message ID |
+
 #### Headers
-| Field | Required | Description |
-| --- | --- | --- |
-| `Authorization` | Yes | Use `Bearer <TOKEN>` |
+
+| Field           | Required | Description          |
+| --------------- | -------- | -------------------- |
+| `Authorization` | Yes      | Use `Bearer <TOKEN>` |
 
 ### Response
 
@@ -341,64 +352,66 @@ Returns the targeted transactional message detail.
 }
 
 ```
-| Field | Type | Description |
-| --- | --- | --- |
-| `id` | string | Unique message log identifier returned in `MessageLogDetailResponse`. |
-| `status` | MessageLogStatus | Latest delivery status recorded for the message. |
-| `sender` | string | Sender email/name originally used. |
-| `recipient` | string | Recipient email address. |
-| `opened` | number | Total tracked open events. |
-| `clicked` | number | Total tracked click events. |
-| `cost` | number | Credit cost incurred for delivery, stored in an integer (multiply by 100) |
-| `created_at` | Date | When the log entry was created. |
-| `updated_at` | Date | When the log entry last changed. |
-| `status_logs` | StatusLogResponse[] | Chronological list of delivery state changes. |
-| `status_logs[].status` | MessageLogStatus | Status recorded for the log entry. |
-| `status_logs[].response.code` | number | Transport/MTA response code. |
-| `status_logs[].response.content` | string | Raw provider response body. |
-| `status_logs[].timestamp` | number | Event timestamp from provider (epoch ms). |
-| `status_logs[].created` | number | Timestamp when the status log was persisted (epoch ms). |
-| `status_logs[].error_message` | string | Optional error message describing the failure cause. |
+
+| Field                            | Type                | Description                                                               |
+| -------------------------------- | ------------------- | ------------------------------------------------------------------------- |
+| `id`                             | string              | Unique message log identifier returned in `MessageLogDetailResponse`.     |
+| `status`                         | MessageLogStatus    | Latest delivery status recorded for the message.                          |
+| `sender`                         | string              | Sender email/name originally used.                                        |
+| `recipient`                      | string              | Recipient email address.                                                  |
+| `opened`                         | number              | Total tracked open events.                                                |
+| `clicked`                        | number              | Total tracked click events.                                               |
+| `cost`                           | number              | Credit cost incurred for delivery, stored in an integer (multiply by 100) |
+| `created_at`                     | Date                | When the log entry was created.                                           |
+| `updated_at`                     | Date                | When the log entry last changed.                                          |
+| `status_logs`                    | StatusLogResponse[] | Chronological list of delivery state changes.                             |
+| `status_logs[].status`           | MessageLogStatus    | Status recorded for the log entry.                                        |
+| `status_logs[].response.code`    | number              | Transport/MTA response code.                                              |
+| `status_logs[].response.content` | string              | Raw provider response body.                                               |
+| `status_logs[].timestamp`        | number              | Event timestamp from provider (epoch ms).                                 |
+| `status_logs[].created`          | number              | Timestamp when the status log was persisted (epoch ms).                   |
+| `status_logs[].error_message`    | string              | Optional error message describing the failure cause.                      |
 
 #### `MessageLogStatus` meaning
-| Status | Meaning |
-| --- | --- |
-| `Created` | Message request persisted but not yet submitted to the provider. |
-| `Submitting` | Currently being handed off to the provider. |
-| `Accepted` | Provider acknowledged receipt of the message. |
-| `Delivered` | Provider confirmed the recipient’s server accepted the message. |
-| `Deferred` | Provider deferred the message; will retry later. |
-| `Delayed` | Message is intentionally delayed or postponed by the system/provider. |
-| `TimedOut` | Delivery attempts timed out before completion. |
-| `Feedback` | Recipient issued a feedback/complaint (feedback loop). |
-| `TechnicalError` | Internal system error prevented sending. |
-| `InsufficientCredit` | Sending failed because the tenant lacks credits. |
+
+| Status               | Meaning                                                               |
+| -------------------- | --------------------------------------------------------------------- |
+| `Created`            | Message request persisted but not yet submitted to the provider.      |
+| `Submitting`         | Currently being handed off to the provider.                           |
+| `Accepted`           | Provider acknowledged receipt of the message.                         |
+| `Delivered`          | Provider confirmed the recipient’s server accepted the message.       |
+| `Deferred`           | Provider deferred the message; will retry later.                      |
+| `Delayed`            | Message is intentionally delayed or postponed by the system/provider. |
+| `TimedOut`           | Delivery attempts timed out before completion.                        |
+| `Feedback`           | Recipient issued a feedback/complaint (feedback loop).                |
+| `TechnicalError`     | Internal system error prevented sending.                              |
+| `InsufficientCredit` | Sending failed because the tenant lacks credits.                      |
+| `Blocked`            | The                       |
 
 **Bounce statuses**
-Messages may encountered the issues catagorized as bounce, described by the following
 
-| Status | Meaning | Bounce type | Retry allowed | Credit charged |
-| --- | --- | --- | --- | --- |
-| `HardBounce` | Provider returned a permanent failure that should not be retried. | Hard | No | Yes |
-| `SoftBounce` | Provider returned a temporary failure; message may be retried. | Soft | Yes | No |
-| `InvalidRecipient` | Recipient address is invalid or the mailbox does not exist. | Hard | No | Yes |
-| `BadDomain` | Recipient domain is misconfigured or missing valid MX records. | Hard | No | Yes |
-| `InactiveMailbox` | Mailbox exists but is disabled, suspended, or closed. | Hard | No | Yes |
-| `InvalidSender` | Sender/domain is not allowed or fails sender validation. | Hard | No | Yes |
-| `QuotaIssues` | Recipient mailbox is full or exceeds storage/attachment limits. | Soft | Yes | No |
-| `NoAnswerFromHost` | Remote host did not respond during delivery attempts. | Hard | No | Yes |
-| `BadConnection` | Connection to the recipient host failed or was dropped. | Soft | Yes | No |
-| `DNSFailure` | DNS lookup for the recipient domain failed (e.g., no MX). | Hard | No | Yes |
-| `RoutingErrors` | Provider refused to relay or could not route to the recipient. | Soft | Yes | No |
-| `TransientFailure` | Provider returned a temporary, unspecified failure; safe to retry. | Soft | Yes | No |
-| `MessageExpired` | Delivery window elapsed before the provider could deliver. | Hard | No | Yes |
-| `ProtocolErrors` | SMTP command sequence or syntax was rejected. | Soft | Yes | No |
-| `AuthenticationFailed` | Authentication/DMARC/SPF checks failed for the sender. | Soft | Yes | No |
-| `PolicyRelated` | Rejected by provider policy or acceptable use restrictions. | Soft | No | Yes |
-| `SpamContent` | Message content was classified as spam or virus. | Soft | No | Yes |
-| `SpamFiltered` | Provider accepted but filtered or quarantined based on spam heuristics. | Soft | No | Yes |
-| `SpamBlock` | Delivery blocked due to sender/IP/domain reputation or blocklists. | Soft | No | Yes |
-| `ProviderRejected` | Provider actively rejected the message outside of bounce semantics. | Soft | No | Yes |
+Messages may encounter issues categorized as bounces; credit charging follows the community classifier annotations.
+
+| Status                 | Meaning                                                                 | Bounce type | Retry allowed | Credit charged             |
+| ---------------------- | ----------------------------------------------------------------------- | ----------- | ------------- | -------------------------- |
+| `InvalidRecipient`     | Recipient address is invalid or the mailbox does not exist.             | Hard        | No            | Yes*                       |
+| `BadDomain`            | Recipient domain is misconfigured or missing valid MX records.          | Hard        | No            | No                         |
+| `InactiveMailbox`      | Mailbox exists but is disabled, suspended, or closed.                   | Hard        | No            | Yes*                       |
+| `InvalidSender`        | Sender/domain is not allowed or fails sender validation.                | Hard        | No            | Yes                        |
+| `QuotaIssues`          | Recipient mailbox is full or exceeds storage/attachment limits.         | Soft        | Yes           | Yes                        |
+| `NoAnswerFromHost`     | Remote host did not respond during delivery attempts.                   | Hard        | No            | No                         |
+| `BadConnection`        | Connection to the recipient host failed or was dropped.                 | Soft        | Yes           | No                         |
+| `DNSFailure`           | DNS lookup for the recipient domain failed (e.g., no MX).               | Hard        | No            | No                         |
+| `RoutingErrors`        | Provider refused to relay or could not route to the recipient.          | Soft        | Yes           | No                         |
+| `MessageExpired`       | Delivery window elapsed before the provider could deliver.              | Hard        | No            | No                         |
+| `ProtocolErrors`       | SMTP command sequence or syntax was rejected.                           | Soft        | Yes           | No                         |
+| `AuthenticationFailed` | Authentication/DMARC/SPF checks failed for the sender.                  | Soft        | Yes           | No                         |
+| `PolicyRelated`        | Rejected by provider policy or acceptable use restrictions.             | Soft        | No            | Yes                        |
+| `SpamContent`          | Message content was classified as spam or virus.                        | Soft        | No            | Yes                        |
+| `SpamBlock`            | Delivery blocked due to sender/IP/domain reputation or blocklists.      | Soft        | Yes           | Yes                        |
+| `ProviderRejected`     | Provider actively rejected the message outside of bounce semantics.     | Hard        | No            | Yes                        |
+
+*Credit charge occurs on the first encounter of the message recipient, next encounter will be blocked by our blocklist. 
 
 **401 – Unauthorized**
 
@@ -413,7 +426,7 @@ The specified credentials is invalid, or restricted by CIDR.
 
 **404 – Not Found**
 
-When the targeted transactional message is not exists, throws `MessageNotFoundError`. 
+When the targeted transactional message is not exists, throws `MessageNotFoundError`.
 
 ```json
 {
