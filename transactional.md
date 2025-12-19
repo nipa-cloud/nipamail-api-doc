@@ -361,7 +361,7 @@ Returns the targeted transactional message detail.
 | `recipient`                      | string              | Recipient email address.                                                  |
 | `opened`                         | number              | Total tracked open events.                                                |
 | `clicked`                        | number              | Total tracked click events.                                               |
-| `cost`                           | number              | Credit cost incurred for delivery, stored in an integer (multiply by 100) |
+| `cost`                           | number              | Credit cost incurred for delivery, stored in an integer                   |
 | `created_at`                     | Date                | When the log entry was created.                                           |
 | `updated_at`                     | Date                | When the log entry last changed.                                          |
 | `status_logs`                    | StatusLogResponse[] | Chronological list of delivery state changes.                             |
@@ -377,11 +377,9 @@ Returns the targeted transactional message detail.
 | Status               | Meaning                                                               |
 | -------------------- | --------------------------------------------------------------------- |
 | `Created`            | Message request persisted but not yet submitted to the provider.      |
-| `Submitting`         | Currently being handed off to the provider.                           |
 | `Accepted`           | Provider acknowledged receipt of the message.                         |
 | `Delivered`          | Provider confirmed the recipient’s server accepted the message.       |
 | `Deferred`           | Provider deferred the message; will retry later.                      |
-| `Delayed`            | Message is intentionally delayed or postponed by the system/provider. |
 | `TimedOut`           | Delivery attempts timed out before completion.                        |
 | `Feedback`           | Recipient issued a feedback/complaint (feedback loop).                |
 | `TechnicalError`     | Internal system error prevented sending.                              |
