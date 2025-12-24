@@ -432,3 +432,191 @@ When the targeted transactional message is not exists, throws `MessageNotFoundEr
   "message": "The message specified could not be found."
 }
 ```
+
+## Resend the transactional message
+
+This API ensures that the message is sent again using the same request body
+as the initial send. It is useful in scenarios where the previous
+message delivery failed that eligible resend
+
+### Request
+
+```http
+PUT /v1/messages/{transactional_message_id}
+```
+
+#### Headers
+
+| Field           | Required | Description          |
+| --------------- | -------- | -------------------- |
+| `Content-Type`  | Yes      | `application/json`   |
+| `Authorization` | Yes      | Use `Bearer <TOKEN>` |
+
+#### Request body
+
+```json
+{
+  "type": "EMAIL" | "SMS",
+  "message": {
+    "sender": "<sender name>",
+    "recipient": "<target email>",
+    "subject": "<string>",
+    "template_id": "<template identifier>",     // required when html is absent
+    "html": "<base64 encoded html>",            // required when template_id is absent
+    "template_values": {
+      "[key]": "value"
+    },
+    "attachments": [
+      {
+        "type": "ASSET" | "RAW",
+        "content": "<base64 payload or asset id>",
+        "file_name": "<download name>"
+      }
+    ]
+  }
+}
+```
+
+| Field                             | Required    | Description                                                                                                   |
+| --------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| `type`                            | Yes         | `EMAIL` for email message                                                                                     |
+| `message.sender`                  | Yes         | Sender domain registered.                                                                                     |
+| `message.recipient`               | Yes         | Single recipient email address.                                                                               |
+| `message.subject`                 | Yes         | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'.         |
+| `message.template_id`             | Conditional | Provide when not supplying `message.html`; references stored template.                                        |
+| `message.html`                    | Conditional | Base64-encoded HTML content when no template is referenced.                                                   |
+| `message.template_values`         | No          | Key/value map injected into template rendering.                                                               |
+| `message.attachments[].type`      | No          | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
+| `message.attachments[].content`   | No          | Payload or asset identifier depending on `type`.                                                              |
+| `message.attachments[].file_name` | No          | Friendly download filename surfaced to recipients.                                                            |
+
+---
+
+### Response
+
+**200 – OK**
+
+Message resend.
+
+```json
+{
+  "status": "<status>",
+  "updated_at": "<timestamp>",
+  "current_attemp": <number>
+}
+```
+
+| Field        | Description                                           |
+| ------------ | ----------------------------------------------------- |
+| `status`     | Message status                                        |
+| `updated_at` | Timestamp of latest updated.                          |
+| `current_attemp`| Number of retry count                              |
+
+**400 – Bad Request**
+
+When a malformed request body supplied, throws `ValidationError`.
+
+```json
+{
+  "type": "ValidationError",
+  "errors": [
+    {
+      "target": {
+        "type": "PUSH"
+      },
+      "property": "type",
+      "children": [],
+      "constraints": {
+        "isOneOf": "type must be one of 'EMAIL', 'SMS'"
+      }
+    }
+  ]
+}
+```
+
+**401 – Unauthorized**
+
+The specified credentials is invalid, or restricted by CIDR.
+
+```json
+{
+  "type": "UnauthorizedError",
+  "message": "Invalid credentials or restricted by CIDR."
+}
+```
+
+**404 – Not Found**
+
+When the specified `transactional_message_id` does not exist in the sending history, throws `MessageNotFoundError`.
+
+```json
+{
+  "type": "MessageNotFoundError",
+  "message": "The message specified could not be found."
+}
+```
+
+**406 – Not Acceptable**
+
+When the retry data provided does not match the original message data, throws `RetryDataMismatchError`.
+
+```json
+{
+  "type": "RetryContentMismatchError",
+  "message": "The content of the retried message does not match the original message."
+}
+```
+
+**406 – Not Acceptable**
+
+When the message status does not permit retrying, throws `MessageStatusNotAllowedToRetryError`.
+
+```json
+{
+  "type": "RetryDeniedError",
+  "message": "The specified message is not eligible for retry."
+}
+```
+
+**406 – Not Acceptable**
+
+When the maximum number of retry attempts for the message has been exceeded, throws `MaxRetryAttemptsExceededError`.
+
+```json
+{
+  "type": "MaxRetryAttemptsExceededError",
+  "message": "The maximum number of retry attempts on this message has been exceeded."
+}
+```
+
+**500 – Internal Server Error**
+
+When catastrophic errors occured, throws `InternalServerError`
+
+```json
+{
+  "type": "InternalServerError",
+  "message": "Something went wrong, please try again later."
+}
+```
+
+### Example: resend inline HTML with `curl`
+
+Encode your HTML in base64 (no newlines) and place it in `message.html`.
+
+```bash
+curl -X PUT https://api.nipamail.com/v1/messages/{transactional_message_id} \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "EMAIL",
+    "message": {
+      "sender": "<sender display name> <<sender@yourdomain.com>>",
+      "recipient": "<recipient@example.com>",
+      "subject": "<subject line>",
+      "html": "<base64-encoded-html>"
+    }
+  }'
+```
+
+---
