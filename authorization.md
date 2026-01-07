@@ -24,6 +24,17 @@ POST /v1/auth/tokens
 
 Application authorized.
 
+#### Headers
+
+| Field | Description |
+| --- | --- |
+| `x-ratelimit-remaining` | How many requests you can still make before hitting the limit. |
+| `x-ratelimit-reset` | Epoch time (or seconds until) when the current window resets. |
+| `x-ratelimit-limit` | Total number of requests allowed in the current window. |
+| `retry-after` | The time (in seconds) that the client should wait before retrying the request. |
+
+The `access_token` remains usable for up to 1 hour after issuance.
+
 ```json
 {
   "token_type": "Bearer",
@@ -62,5 +73,16 @@ The specified credentials is invalid, or restricted by CIDR.
 {
   "type": "UnauthorizedError",
   "message": "Invalid credentials or restricted by CIDR."
+}
+```
+
+**429 – TooManyRequests**
+
+When the client exceeds the allowed number of requests within a given timeframe, the rate limiter triggers and returns this error. Retry after the specified duration in the message.
+
+```json
+{
+  "type": "TooManyRequestsError",
+  "message": "Rate limit exceeded, retry in 5 seconds."
 }
 ```

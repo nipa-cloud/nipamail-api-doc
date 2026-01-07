@@ -61,6 +61,14 @@ POST /v1/messages
 
 Message created.
 
+#### Headers
+| Field | Description |
+| --- | --- |
+| `x-ratelimit-remaining` | How many requests you can still make before hitting the limit. |
+| `x-ratelimit-reset` | Epoch time (or seconds until) when the current window resets. |
+| `x-ratelimit-limit` | Total number of requests allowed in the current window. |
+| `retry-after` | The time (in seconds) that the client should wait before retrying the request. |
+
 ```json
 {
   "id": "<message id>",
