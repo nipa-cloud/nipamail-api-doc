@@ -443,6 +443,8 @@ When the targeted transactional message is not exists, throws `MessageNotFoundEr
 
 ## Resend the transactional message
 
+**Tier: Enterprise**
+
 This API ensures that the message is sent again using the same request body
 as the initial send. It is useful in scenarios where the previous
 message delivery failed that eligible resend
