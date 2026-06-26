@@ -1,16 +1,14 @@
-# NipaMail API Documentation
-
 ![NipaMail logo](data:image/webp;base64,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)
 
 # บทนำ
 
-ยินดีต้อนรับสู่ NipaMail — รางส่งอีเมลและ SMS ที่ช่วยให้ทีมส่งได้เร็วโดยไม่ต้องสู้กับโครงสร้างพื้นฐาน
+ยินดีต้อนรับสู่ NipaMail — ช่องทางส่งอีเมลและ SMS ที่ช่วยให้ส่งข้อความได้รวดเร็ว โดยไม่ต้องจัดการโครงสร้างพื้นฐานเอง
 
-คู่มือนี้พาคุณจากศูนย์สู่การส่งจริง: ยืนยันตัวตนด้วยข้อมูลแอปพลิเคชัน ส่งข้อความธุรกรรมด้วยเทมเพลตหรือ HTML ฝัง แนบไฟล์แบบ Asset หรือ base64 และตรวจสอบเครดิตผู้เช่าก่อนที่ยอดจะหมด
+คู่มือนี้จะพาคุณเริ่มตั้งแต่การตั้งค่าจนสามารถส่งข้อความได้จริง: ยืนยันตัวตนด้วย client credential ส่งข้อความธุรกรรมด้วยเทมเพลตหรือ Base64 encoded HTML แนบ asset หรือ payload สอบถามสถานะการส่ง และตรวจสอบเครดิตของ tenant
 
-ทุกส่วนเป็นเชิงปฏิบัติ พร้อมคำสั่ง curl วางใช้งานได้ทันที ตารางฟิลด์อ่านง่าย และตัวอย่างการตอบกลับจริงเพื่อให้เชื่อมต่อได้มั่นใจ
+ทุกส่วนใช้งานได้จริง พร้อมคำสั่ง curl ที่นำไปใช้ได้ทันที ตารางฟิลด์ที่อ่านง่าย และตัวอย่างการตอบกลับที่คาดหวัง เพื่อให้คุณเชื่อมต่อระบบได้อย่างมั่นใจ
 
-เริ่มที่การยืนยันตัวตน ต่อด้วยการส่งข้อความธุรกรรม แล้วปิดท้ายด้วยการตรวจเครดิต ทุกเอ็นด์พอยต์ด้านล่างใช้ฐาน URL เดียวกัน
+เริ่มที่การยืนยันตัวตน ต่อด้วยการส่งข้อความธุรกรรม สอบถามสถานะข้อความ แล้วปิดท้ายด้วยการตรวจเครดิต ทุกเอ็นด์พอยต์ด้านล่างใช้ฐาน URL เดียวกัน
 
 ## Endpoints
 
@@ -18,41 +16,57 @@
 https://api.nipamail.com
 ```
 
-## เริ่มต้นอย่างรวดเร็ว
+## เริ่มใช้งานแบบทันที
 
 1) ขอรับโทเค็นการเข้าใช้  
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/auth/tokens \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=client_credentials&client_id=<APP_ID>&client_secret=<APP_SECRET>"
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "grant_type": "client_credentials",
+    "client_id": "<CLIENT_ID>",
+    "client_secret": "<CLIENT_SECRET>"
+}
+JSON
 ```
 
 นำ `access_token` ที่ได้ไปใช้เป็น `Bearer <TOKEN>` ในขั้นตอนถัดไป
 
-2) ส่งอีเมลธุรกรรม (HTML ฝัง)  
+2) ส่งอีเมลธุรกรรม (Base64 encoded HTML)
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "Sender <no-reply@yourdomain.com>",
-      "recipient": "user@example.com",
-      "subject": "Welcome to NipaMail",
-      "html": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGJvZHk+PGgxPldlbGNvbWUgdG8gTmlwYU1haWw8L2gxPjxwPlRoaXMgaXMgYW4gaW5saW5lIEhUTUwuPC9wPjwvYm9keT48L2h0bWw+"
+        "sender": "Sender <no-reply@yourdomain.com>",
+        "recipient": "user@example.com",
+        "subject": "Welcome to NipaMail",
+        "html": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGJvZHk+PGgxPldlbGNvbWUgdG8gTmlwYU1haWw8L2gxPjxwPlRoaXMgaXMgYW4gaW5saW5lIEhUTUwuPC9wPjwvYm9keT48L2h0bWw+"
     }
-}'
+}
+JSON
 ```
 
 หากต้องการใช้เทมเพลต ให้ส่ง `template_id` และ `template_values` แทน `html`
 
-3) ตรวจสอบเครดิตของ Tenant
+3) สอบถามสถานะข้อความธุรกรรม
+
+ใช้ `id` ที่ได้จากการตอบกลับของการส่งข้อความเป็น `transactional_message_id`
+
+```bash
+curl -X GET https://api.nipamail.com/v1/messages/<transactional_message_id> \
+    -H "Authorization: Bearer <TOKEN>"
+```
+
+4) ตรวจสอบเครดิตของ tenant
 
 ```bash
 curl -X GET https://api.nipamail.com/v1/credits \
-  -H "Authorization: Bearer <TOKEN>"
-
+    -H "Authorization: Bearer <TOKEN>"
 ```

@@ -8,34 +8,45 @@ GET /v1/credits
 #### เฮดเดอร์
 | ฟิลด์ | บังคับ | คำอธิบาย |
 | --- | --- | --- |
-| `Authorization` | Yes | ใช้ `Bearer <TOKEN>` |
+| `Authorization` | ใช่ | ใช้ `Bearer <TOKEN>` |
 
 ### การตอบกลับ
 
 **200 – OK**
 
-ส่งกลับยอดเครดิตที่ใช้ได้และเครดิตที่กันไว้ของผู้เช่า
+ส่งกลับยอดเครดิตที่พร้อมใช้งานและเครดิตที่กันไว้ของ tenant
 
 ```json
 {
-  "available": <number>,
-  "reserved": <number>
+    "available": <number>,
+    "reserved": <number>
 }
 
 ```
 | ฟิลด์ | ชนิด | คำอธิบาย |
 | --- | --- | --- |
-| `available` | number | เครดิตที่สามารถใช้ได้ทันที |
+| `available` | number | เครดิตที่พร้อมใช้ได้ทันที |
 | `reserved` | number | เครดิตที่กันไว้สำหรับธุรกรรมที่รอดำเนินการ |
 
 
 **401 – Unauthorized**
 
-ข้อมูลยืนยันตัวตนไม่ถูกต้อง หรือถูกจำกัดด้วย CIDR
+โทเค็นหมดอายุ หรือถูกจำกัด IP ที่สามารถขอส่งข้อความได้
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อ tenant ที่ยืนยันตัวตนถูกเรียกเก็บเงินผ่าน parent tenant จะไม่อนุญาตให้ตรวจสอบเครดิตโดยตรง
+
+```json
+{
+    "type": "GetAvailableCreditNotAllowedError",
+    "message": "Get available credit is not allowed."
 }
 ```

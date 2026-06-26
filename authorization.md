@@ -1,6 +1,6 @@
 # Authentication
 
-## Authenticate the application credential with the application ID and secret
+## Authenticate the client credential with the client ID and secret
 
 ### Request
 ```
@@ -9,20 +9,43 @@ POST /v1/auth/tokens
 #### Headers
 | Field | Required | Description |
 | --- | --- | --- |
-| `Content-Type` | Yes | `application/x-www-form-urlencoded` |
+| `Content-Type` | Yes | `application/json` |
 
-#### Parameter
+#### Request body
+
+```json
+{
+    "grant_type": "client_credentials",
+    "client_id": "<client id>",
+    "client_secret": "<client secret>"
+}
+```
+
 | Field | Required | Description |
 | --- | --- | --- |
 | `grant_type` | Yes | `client_credentials` |
-| `client_id` | Yes | Application ID |
-| `client_secret` | Yes | Application secret |
+| `client_id` | Yes | Client ID |
+| `client_secret` | Yes | Client secret |
+
+### Example: generate an access token with `curl`
+
+```bash
+curl -X POST https://api.nipamail.com/v1/auth/tokens \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "grant_type": "client_credentials",
+    "client_id": "<CLIENT_ID>",
+    "client_secret": "<CLIENT_SECRET>"
+}
+JSON
+```
 
 ### Response
 
 **200 – OK**
 
-Application authorized.
+Client authorized.
 
 #### Headers
 
@@ -37,9 +60,9 @@ The `access_token` remains usable for up to 1 hour after issuance.
 
 ```json
 {
-  "token_type": "Bearer",
-  "access_token": "<token>",
-  "expires_in": "<expiration in seconds>"
+    "token_type": "Bearer",
+    "access_token": "<token>",
+    "expires_in": "<expiration in seconds>"
 }
 ```
 
@@ -71,8 +94,8 @@ The specified credentials is invalid, or restricted by CIDR.
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
@@ -82,7 +105,7 @@ When the client exceeds the allowed number of requests within a given timeframe,
 
 ```json
 {
-  "type": "TooManyRequestsError",
-  "message": "Rate limit exceeded, retry in 5 seconds."
+    "type": "TooManyRequestsError",
+    "message": "Rate limit exceeded, retry in 5 seconds."
 }
 ```

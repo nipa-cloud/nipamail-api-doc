@@ -18,8 +18,8 @@ Returns the current available and reserved credit for the tenant.
 
 ```json
 {
-  "available": <number>,
-  "reserved": <number>
+    "available": <number>,
+    "reserved": <number>
 }
 
 ```
@@ -35,7 +35,18 @@ The specified credentials is invalid, or restricted by CIDR.
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
+}
+```
+
+**406 – Not Acceptable**
+
+When the authenticated tenant is billed through a parent tenant, direct credit enquiry is not allowed.
+
+```json
+{
+    "type": "GetAvailableCreditNotAllowedError",
+    "message": "Get available credit is not allowed."
 }
 ```

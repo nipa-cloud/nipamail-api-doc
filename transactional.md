@@ -13,30 +13,31 @@ POST /v1/messages
 | Field           | Required | Description          |
 | --------------- | -------- | -------------------- |
 | `Content-Type`  | Yes      | `application/json`   |
-| `Authorization` | Yes      | Use `Bearer <TOKEN>` |
+| `Authorization` | Yes      | `Bearer <TOKEN>`     |
 
 #### Request body
 
 ```json
 {
-  "type": "EMAIL" | "SMS",
-  "message": {
-    "sender": "<sender name>",
-    "recipient": "<target email>",
-    "subject": "<string>",
-    "template_id": "<template identifier>",     // required when html is absent
-    "html": "<base64 encoded html>",            // required when template_id is absent
-    "template_values": {
-      "[key]": "value"
-    },
-    "attachments": [
-      {
-        "type": "ASSET" | "RAW",
-        "content": "<base64 payload or asset id>",
-        "file_name": "<download name>"
-      }
-    ]
-  }
+    "type": "EMAIL" | "SMS",
+    "message": {
+        "sender": "<sender name>",
+        "recipient": "<target email>",
+        "subject": "<string>",
+        "template_id": "<template identifier>",     // required when html is absent
+        "html": "<base64 encoded html>",            // required when template_id is absent
+        "selector": "<dkim selector>",
+        "template_values": {
+            "[key]": "value"
+        },
+        "attachments": [
+            {
+                "type": "ASSET" | "RAW",
+                "content": "<base64 payload or asset id>",
+                "file_name": "<download name>"
+            }
+        ]
+    }
 }
 ```
 
@@ -48,6 +49,7 @@ POST /v1/messages
 | `message.subject`                 | Yes         | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'.         |
 | `message.template_id`             | Conditional | Provide when not supplying `message.html`; references stored template.                                        |
 | `message.html`                    | Conditional | Base64-encoded HTML content when no template is referenced.                                                   |
+| `message.selector`                | No          | DKIM selector to use when the sender domain has more than one active DKIM record.                             |
 | `message.template_values`         | No          | Key/value map injected into template rendering.                                                               |
 | `message.attachments[].type`      | No          | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
 | `message.attachments[].content`   | No          | Payload or asset identifier depending on `type`.                                                              |
@@ -71,10 +73,10 @@ Message created.
 
 ```json
 {
-  "id": "<message id>",
-  "status": "<status>",
-  "updated_at": "<timestamp>",
-  "cost": <number>
+    "id": "<message id>",
+    "status": "<status>",
+    "updated_at": "<timestamp>",
+    "cost": <number>
 }
 ```
 
@@ -91,19 +93,19 @@ When a malformed request body supplied, throws `ValidationError`.
 
 ```json
 {
-  "type": "ValidationError",
-  "errors": [
-    {
-      "target": {
-        "type": "PUSH"
-      },
-      "property": "type",
-      "children": [],
-      "constraints": {
-        "isOneOf": "type must be one of 'EMAIL', 'SMS'"
-      }
-    }
-  ]
+    "type": "ValidationError",
+    "errors": [
+        {
+            "target": {
+                "type": "PUSH"
+            },
+            "property": "type",
+            "children": [],
+            "constraints": {
+                "isOneOf": "type must be one of 'EMAIL', 'SMS'"
+            }
+        }
+    ]
 }
 ```
 
@@ -113,8 +115,8 @@ The specified credentials is invalid, or restricted by CIDR.
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
@@ -124,8 +126,8 @@ When the `template_id` specified is not exists, throws `TemplateNotFoundError`.
 
 ```json
 {
-  "type": "TemplateNotFoundError",
-  "message": "The template specified could not be found."
+    "type": "TemplateNotFoundError",
+    "message": "The template specified could not be found."
 }
 ```
 
@@ -135,8 +137,8 @@ When one or more attachments referenced in the `attachments[].content` with type
 
 ```json
 {
-  "type": "AssetNotFoundError",
-  "message": "One or more of the specified assets could not be found."
+    "type": "AssetNotFoundError",
+    "message": "One or more of the specified assets could not be found."
 }
 ```
 
@@ -146,8 +148,19 @@ When the sender domain specified is not one of registered sender domains, throws
 
 ```json
 {
-  "type": "InvalidSenderError",
-  "message": "The specified sender domain is not registered."
+    "type": "InvalidSenderError",
+    "message": "The specified sender domain is not registered."
+}
+```
+
+**406 – Not Acceptable**
+
+When the recipient email address or recipient domain cannot be accepted, throws `InvalidRecipientError`.
+
+```json
+{
+    "type": "InvalidRecipientError",
+    "message": "The specified recipient is invalid."
 }
 ```
 
@@ -157,8 +170,8 @@ When the credit balance on the account is insufficient, throws `InsufficientCred
 
 ```json
 {
-  "type": "InsufficientCreditError",
-  "message": "Your credit balance is insufficient."
+    "type": "InsufficientCreditError",
+    "message": "Your credit balance is insufficient."
 }
 ```
 
@@ -168,8 +181,30 @@ When the total size of attachment specified exceeds the attachment size limit, t
 
 ```json
 {
-  "type": "TotalAttachmentSizeExceededError",
-  "message": "The total size of attachments exceeds the allowed limit."
+    "type": "TotalAttachmentSizeExceededError",
+    "message": "The total size of attachments exceeds the allowed limit."
+}
+```
+
+**406 – Not Acceptable**
+
+When the number of attachments exceeds the tenant attachment count limit, throws `TotalAttachmentCountExceededError`.
+
+```json
+{
+    "type": "TotalAttachmentCountExceededError",
+    "message": "The total number of attachments exceeds the allowed limit."
+}
+```
+
+**429 – TooManyRequests**
+
+When the client exceeds the allowed number of send requests within the current rate-limit window, throws `TooManyRequestsError`.
+
+```json
+{
+    "type": "TooManyRequestsError",
+    "message": "Rate limit exceeded, retry in 5 seconds."
 }
 ```
 
@@ -179,28 +214,30 @@ When catastrophic errors occured, throws `InternalServerError`
 
 ```json
 {
-  "type": "InternalServerError",
-  "message": "Something went wrong, please try again later."
+    "type": "InternalServerError",
+    "message": "Something went wrong, please try again later."
 }
 ```
 
-### Example: inline HTML with `curl`
+### Example: Send Base64 encoded HTML with `curl`
 
 Encode your HTML in base64 (no newlines) and place it in `message.html`.
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "html": "<base64-encoded-html>"
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "html": "<base64-encoded-html>"
     }
-  }'
+}
+JSON
 ```
 
 ### Example: template with variables using `curl`
@@ -209,21 +246,23 @@ Provide a stored `template_id` and pass values to render inside the template.
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "first_name": "<first name>",
-        "cta_url": "<cta url>"
-      }
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "first_name": "<first name>",
+            "cta_url": "<cta url>"
+        }
     }
-  }'
+}
+JSON
 ```
 
 ### Example: template with variables and asset attachment using `curl`
@@ -232,28 +271,30 @@ Reference an uploaded asset by ID for attachments.
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "full_name": "<full name>",
-        "statement_month": "<statement month>"
-      },
-      "attachments": [
-        {
-          "type": "ASSET",
-          "content": "<asset id>",
-          "file_name": "<attachment name>"
-        }
-      ]
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "full_name": "<full name>",
+            "statement_month": "<statement month>"
+        },
+        "attachments": [
+            {
+                "type": "ASSET",
+                "content": "<asset id>",
+                "file_name": "<attachment name>"
+            }
+        ]
     }
-  }'
+}
+JSON
 ```
 
 ### Example: template with variables and raw base64 attachment using `curl`
@@ -262,28 +303,30 @@ Inline a file by base64-encoding it and setting `attachments[].type` to `RAW`.
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "full_name": "<full name>",
-        "statement_month": "<statement month>"
-      },
-      "attachments": [
-        {
-          "type": "RAW",
-          "content": "<base64-encoded-file>",
-          "file_name": "<attachment name>"
-        }
-      ]
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "full_name": "<full name>",
+            "statement_month": "<statement month>"
+        },
+        "attachments": [
+            {
+                "type": "RAW",
+                "content": "<base64-encoded-file>",
+                "file_name": "<attachment name>"
+            }
+        ]
     }
-  }'
+}
+JSON
 ```
 
 ---
@@ -316,108 +359,118 @@ Returns the targeted transactional message detail.
 
 ```json
 {
-  "id": "<message id>",
-  "status": "<status>",
-  "sender": "<sender name> <<sender@example.com>>",
-  "recipient": "<recipient@example.com>",
-  "opened": <number>,
-  "clicked": <number>,
-  "cost": <number>,
-  "created_at": "<timestamp>",
-  "updated_at": "<timestamp>",
-  "status_logs": [
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    },
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    },
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    }
-  ]
+    "id": "<message id>",
+    "result": "<result>",
+    "status": "<status>",
+    "sender": "<sender name> <<sender@example.com>>",
+    "recipient": "<recipient@example.com>",
+    "opened": <number>,
+    "clicked": <number>,
+    "cost": <number>,
+    "created_at": "<timestamp>",
+    "updated_at": "<timestamp>",
+    "retry_attempts": <number>,
+    "status_logs": [
+        {
+            "result": "<result>",
+            "status": "<status>",
+            "response": {
+                "code": <number>,
+                "content": "<provider response>"
+            },
+            "timestamp": <epoch-ms>,
+            "created": <epoch-ms>
+        },
+        {
+            "result": "<result>",
+            "status": "<status>",
+            "details": "<system detail>",
+            "response": null,
+            "timestamp": <epoch-ms>,
+            "created": <epoch-ms>
+        }
+    ]
 }
 
 ```
 
 | Field                            | Type                | Description                                                               |
 | -------------------------------- | ------------------- | ------------------------------------------------------------------------- |
-| `id`                             | string              | Unique message log identifier returned in `MessageLogDetailResponse`.     |
+| `id`                             | string              | Unique message id.     |
+| `result`                         | EmailMessageResult  | High-level result: `Processing`, `Ok`, `HardBounce`, `SoftBounce`, or `Error`. |
 | `status`                         | MessageLogStatus    | Latest delivery status recorded for the message.                          |
 | `sender`                         | string              | Sender email/name originally used.                                        |
 | `recipient`                      | string              | Recipient email address.                                                  |
 | `opened`                         | number              | Total tracked open events.                                                |
 | `clicked`                        | number              | Total tracked click events.                                               |
-| `cost`                           | number              | Credit cost incurred for delivery, stored in an integer                   |
+| `cost`                           | number              | Credit cost incurred for delivery.                                        |
 | `created_at`                     | Date                | When the log entry was created.                                           |
 | `updated_at`                     | Date                | When the log entry last changed.                                          |
+| `retry_attempts`                 | number              | Number of retry attempts already made for the message.                    |
 | `status_logs`                    | StatusLogResponse[] | Chronological list of delivery state changes.                             |
+| `status_logs[].result`           | EmailMessageResult  | High-level result recorded for this status log.                           |
 | `status_logs[].status`           | MessageLogStatus    | Status recorded for the log entry.                                        |
-| `status_logs[].response.code`    | number              | Transport/MTA response code.                                              |
-| `status_logs[].response.content` | string              | Raw provider response body.                                               |
+| `status_logs[].response`         | object \| null      | Transport/MTA response object, or `null` for system status logs.          |
+| `status_logs[].response.code`    | number \| null      | Transport/MTA response code.                                              |
+| `status_logs[].response.content` | string \| null      | Raw provider response body.                                               |
+| `status_logs[].details`          | string              | Optional system detail for system status logs.                            |
 | `status_logs[].timestamp`        | number              | Event timestamp from provider (epoch ms).                                 |
 | `status_logs[].created`          | number              | Timestamp when the status log was persisted (epoch ms).                   |
-| `status_logs[].error_message`    | string              | Optional error message describing the failure cause.                      |
 
 #### `MessageLogStatus` meaning
 
-| Status               | Meaning                                                               |
-| -------------------- | --------------------------------------------------------------------- |
-| `Created`            | Message request persisted but not yet submitted to the provider.      |
-| `Accepted`           | Provider acknowledged receipt of the message.                         |
-| `Delivered`          | Provider confirmed the recipient’s server accepted the message.       |
-| `Deferred`           | Provider deferred the message; will retry later.                      |
-| `TimedOut`           | Delivery attempts timed out before completion.                        |
-| `Feedback`           | Recipient issued a feedback/complaint (feedback loop).                |
-| `TechnicalError`     | Internal system error prevented sending.                              |
-| `InsufficientCredit` | Sending failed because the tenant lacks credits.                      |
-| `Blocked`            | The recipient is blocked by our blocklist.                            |
+| Result       | Status                 | Meaning                                                                                                      |
+| ------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `Processing` | `Created`              | Message request was saved but not yet accepted by the message transport agent.                               |
+| `Processing` | `Accepted`             | Message transport agent accepted the message request.                                                        |
+| `Processing` | `Deferred`             | Message transport agent deferred the message and will retry later.                                           |
+| `Ok`         | `Delivered`            | Recipient provider confirmed that the recipient server received the message.                                 |
+| `Error`      | `TimedOut`             | Internal system attempts timed out before completion.                                                        |
+| `Error`      | `TechnicalError`       | Internal system error prevented sending.                                                                     |
+| `Error`      | `Feedback`             | Recipient submitted feedback or a complaint through a feedback loop.                                         |
+| `Error`      | `InsufficientCredit`   | Sending failed because the tenant lacks credits.                                                             |
+| `Error`      | `Blocked`              | The recipient is blocked by NipaMail's blocklist.                                                            |
+| `HardBounce` | `InvalidRecipient`     | Recipient address is invalid or the mailbox does not exist.                                                  |
+| `HardBounce` | `InactiveMailbox`      | Mailbox exists but is disabled, suspended, or closed.                                                        |
+| `HardBounce` | `BadDomain`            | Recipient domain is misconfigured or missing valid MX records.                                               |
+| `HardBounce` | `InvalidSender`        | Sender/domain is not allowed or fails to validate DKIM, SPF or DMARC.                                        |
+| `HardBounce` | `NoAnswerFromHost`     | Recipient provider host was found, but the host did not respond to the message request.                      |
+| `HardBounce` | `DNSFailure`           | Recipient DNS lookup failed, for example no MX record was found.                                             |
+| `HardBounce` | `MessageExpired`       | Delivery window elapsed before the message transport agent could deliver the message successfully.           |
+| `HardBounce` | `ProviderRejected`     | Recipient provider rejected the message with an error that does not match another hard-bounce status.        |
+| `SoftBounce` | `QuotaIssues`          | Recipient mailbox is full or the attachment is too large for the recipient to receive.                       |
+| `SoftBounce` | `BadConnection`        | Connection to the recipient provider failed or was dropped.                                                  |
+| `SoftBounce` | `RoutingErrors`        | Recipient provider refused to relay or could not route to the recipient.                                     |
+| `SoftBounce` | `ProtocolErrors`       | SMTP command sequence was rejected or STARTTLS encryption could not be established with the recipient provider. |
+| `SoftBounce` | `AuthenticationFailed` | Recipient provider failed DKIM, DMARC or SPF checks for the sender.                                         |
+| `SoftBounce` | `PolicyRelated`        | Rejected by recipient provider policy or acceptable use restrictions.                                        |
+| `SoftBounce` | `SpamContent`          | Message content was classified as spam or virus.                                                             |
+| `SoftBounce` | `SpamBlock`            | Delivery blocked due to sender/IP/domain reputation or blocklists.                                           |
+| `SoftBounce` | `GenericSoftBounce`    | Recipient provider rejected the message with an error that does not match another soft-bounce status.        |
 
-**Bounce statuses**
+#### Bounce retry and credit charged
 
-Messages may encounter issues categorized as bounces.
+"*" Credit charge occurs on the first encounter of the message recipient, next encounter will be blocked by our blocklist.
 
-| Status                 | Meaning                                                                 | Bounce type | Retry allowed | Credit charged             |
-| ---------------------- | ----------------------------------------------------------------------- | ----------- | ------------- | -------------------------- |
-| `InvalidRecipient`     | Recipient address is invalid or the mailbox does not exist.             | Hard        | No            | Yes*                       |
-| `BadDomain`            | Recipient domain is misconfigured or missing valid MX records.          | Hard        | No            | No                         |
-| `InactiveMailbox`      | Mailbox exists but is disabled, suspended, or closed.                   | Hard        | No            | Yes*                       |
-| `InvalidSender`        | Sender/domain is not allowed or fails sender validation.                | Hard        | No            | Yes                        |
-| `QuotaIssues`          | Recipient mailbox is full or exceeds storage/attachment limits.         | Soft        | Yes           | Yes                        |
-| `NoAnswerFromHost`     | Remote host did not respond during delivery attempts.                   | Hard        | No            | No                         |
-| `BadConnection`        | Connection to the recipient host failed or was dropped.                 | Soft        | Yes           | No                         |
-| `DNSFailure`           | DNS lookup for the recipient domain failed (e.g., no MX).               | Hard        | No            | No                         |
-| `RoutingErrors`        | Provider refused to relay or could not route to the recipient.          | Soft        | Yes           | No                         |
-| `MessageExpired`       | Delivery window elapsed before the provider could deliver.              | Hard        | No            | No                         |
-| `ProtocolErrors`       | SMTP command sequence or syntax was rejected.                           | Soft        | Yes           | No                         |
-| `AuthenticationFailed` | Authentication/DMARC/SPF checks failed for the sender.                  | Soft        | Yes           | No                         |
-| `PolicyRelated`        | Rejected by provider policy or acceptable use restrictions.             | Soft        | No            | Yes                        |
-| `SpamContent`          | Message content was classified as spam or virus.                        | Soft        | No            | Yes                        |
-| `SpamBlock`            | Delivery blocked due to sender/IP/domain reputation or blocklists.      | Soft        | Yes           | Yes                        |
-| `ProviderRejected`     | Provider actively rejected the message outside of bounce semantics.     | Hard        | No            | Yes                        |
-
-*Credit charge occurs on the first encounter of the message recipient, next encounter will be blocked by our blocklist. 
+| Result       | Status                 | Retry | Credit charged |
+| ------------ | ---------------------- | ----- | -------------- |
+| `HardBounce` | `InvalidRecipient`     | No    | Yes *          |
+| `HardBounce` | `InactiveMailbox`      | No    | Yes *          |
+| `HardBounce` | `BadDomain`            | No    | No             |
+| `HardBounce` | `InvalidSender`        | No    | Yes            |
+| `HardBounce` | `NoAnswerFromHost`     | No    | No             |
+| `HardBounce` | `DNSFailure`           | No    | No             |
+| `HardBounce` | `MessageExpired`       | No    | No             |
+| `HardBounce` | `ProviderRejected`     | No    | Yes            |
+| `SoftBounce` | `QuotaIssues`          | Yes   | Yes            |
+| `SoftBounce` | `BadConnection`        | Yes   | No             |
+| `SoftBounce` | `RoutingErrors`        | Yes   | No             |
+| `SoftBounce` | `ProtocolErrors`       | Yes   | No             |
+| `SoftBounce` | `AuthenticationFailed` | Yes   | No             |
+| `SoftBounce` | `PolicyRelated`        | No    | Yes            |
+| `SoftBounce` | `SpamContent`          | No    | Yes            |
+| `SoftBounce` | `SpamBlock`            | Yes   | Yes            |
+| `SoftBounce` | `GenericSoftBounce`    | Yes    | No             |
 
 **401 – Unauthorized**
 
@@ -425,8 +478,8 @@ The specified credentials is invalid, or restricted by CIDR.
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
@@ -436,8 +489,8 @@ When the targeted transactional message is not exists, throws `MessageNotFoundEr
 
 ```json
 {
-  "type": "MessageNotFoundError",
-  "message": "The message specified could not be found."
+    "type": "MessageNotFoundError",
+    "message": "The message specified could not be found."
 }
 ```
 
@@ -466,24 +519,25 @@ PUT /v1/messages/{transactional_message_id}
 
 ```json
 {
-  "type": "EMAIL" | "SMS",
-  "message": {
-    "sender": "<sender name>",
-    "recipient": "<target email>",
-    "subject": "<string>",
-    "template_id": "<template identifier>",     // required when html is absent
-    "html": "<base64 encoded html>",            // required when template_id is absent
-    "template_values": {
-      "[key]": "value"
-    },
-    "attachments": [
-      {
-        "type": "ASSET" | "RAW",
-        "content": "<base64 payload or asset id>",
-        "file_name": "<download name>"
-      }
-    ]
-  }
+    "type": "EMAIL" | "SMS",
+    "message": {
+        "sender": "<sender name>",
+        "recipient": "<target email>",
+        "subject": "<string>",
+        "template_id": "<template identifier>",     // required when html is absent
+        "html": "<base64 encoded html>",            // required when template_id is absent
+        "selector": "<dkim selector>",
+        "template_values": {
+            "[key]": "value"
+        },
+        "attachments": [
+            {
+                "type": "ASSET" | "RAW",
+                "content": "<base64 payload or asset id>",
+                "file_name": "<download name>"
+            }
+        ]
+    }
 }
 ```
 
@@ -495,6 +549,7 @@ PUT /v1/messages/{transactional_message_id}
 | `message.subject`                 | Yes         | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'.         |
 | `message.template_id`             | Conditional | Provide when not supplying `message.html`; references stored template.                                        |
 | `message.html`                    | Conditional | Base64-encoded HTML content when no template is referenced.                                                   |
+| `message.selector`                | No          | DKIM selector to use when the sender domain has more than one active DKIM record.                             |
 | `message.template_values`         | No          | Key/value map injected into template rendering.                                                               |
 | `message.attachments[].type`      | No          | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
 | `message.attachments[].content`   | No          | Payload or asset identifier depending on `type`.                                                              |
@@ -510,9 +565,9 @@ Message resend.
 
 ```json
 {
-  "status": "<status>",
-  "updated_at": "<timestamp>",
-  "current_attemp": <number>
+    "status": "<status>",
+    "updated_at": "<timestamp>",
+    "current_attempt": <number>
 }
 ```
 
@@ -520,7 +575,7 @@ Message resend.
 | ------------ | ----------------------------------------------------- |
 | `status`     | Message status                                        |
 | `updated_at` | Timestamp of latest updated.                          |
-| `current_attemp`| Number of retry count                              |
+| `current_attempt` | Number of retry count                            |
 
 **400 – Bad Request**
 
@@ -528,19 +583,19 @@ When a malformed request body supplied, throws `ValidationError`.
 
 ```json
 {
-  "type": "ValidationError",
-  "errors": [
-    {
-      "target": {
-        "type": "PUSH"
-      },
-      "property": "type",
-      "children": [],
-      "constraints": {
-        "isOneOf": "type must be one of 'EMAIL', 'SMS'"
-      }
-    }
-  ]
+    "type": "ValidationError",
+    "errors": [
+        {
+            "target": {
+                "type": "PUSH"
+            },
+            "property": "type",
+            "children": [],
+            "constraints": {
+                "isOneOf": "type must be one of 'EMAIL', 'SMS'"
+            }
+        }
+    ]
 }
 ```
 
@@ -550,8 +605,8 @@ The specified credentials is invalid, or restricted by CIDR.
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
@@ -561,8 +616,8 @@ When the specified `transactional_message_id` does not exist in the sending hist
 
 ```json
 {
-  "type": "MessageNotFoundError",
-  "message": "The message specified could not be found."
+    "type": "MessageNotFoundError",
+    "message": "The message specified could not be found."
 }
 ```
 
@@ -572,8 +627,8 @@ When the retry data provided does not match the original message data, throws `R
 
 ```json
 {
-  "type": "RetryContentMismatchError",
-  "message": "The content of the retried message does not match the original message."
+    "type": "RetryContentMismatchError",
+    "message": "The content of the retried message does not match the original message."
 }
 ```
 
@@ -583,8 +638,8 @@ When the message status does not permit retrying, throws `MessageStatusNotAllowe
 
 ```json
 {
-  "type": "RetryDeniedError",
-  "message": "The specified message is not eligible for retry."
+    "type": "RetryDeniedError",
+    "message": "The specified message is not eligible for retry."
 }
 ```
 
@@ -594,8 +649,8 @@ When the maximum number of retry attempts for the message has been exceeded, thr
 
 ```json
 {
-  "type": "MaxRetryAttemptsExceededError",
-  "message": "The maximum number of retry attempts on this message has been exceeded."
+    "type": "MaxRetryAttemptsExceededError",
+    "message": "The maximum number of retry attempts on this message has been exceeded."
 }
 ```
 
@@ -605,28 +660,30 @@ When catastrophic errors occured, throws `InternalServerError`
 
 ```json
 {
-  "type": "InternalServerError",
-  "message": "Something went wrong, please try again later."
+    "type": "InternalServerError",
+    "message": "Something went wrong, please try again later."
 }
 ```
 
-### Example: resend inline HTML with `curl`
+### Example: resend Base64 encoded HTML with `curl`
 
 Encode your HTML in base64 (no newlines) and place it in `message.html`.
 
 ```bash
 curl -X PUT https://api.nipamail.com/v1/messages/{transactional_message_id} \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "html": "<base64-encoded-html>"
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "html": "<base64-encoded-html>"
     }
-  }'
+}
+JSON
 ```
 
 ---

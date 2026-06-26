@@ -5,11 +5,11 @@
 
 Welcome to NipaMail — your delivery rail for email and SMS that keeps teams shipping fast without wrestling infrastructure. 
 
-This guide walks you from zero to sent: authorize with your application credentials, fire off transactional messages with templates or inline HTML, attach assets or raw payloads, and keep an eye on tenant credits before you run low. 
+This guide walks you from zero to sent: authorize with your client credentials, fire off transactional messages with templates or Base64 encoded HTML, attach assets or raw payloads, inquire sending status, and keep an eye on tenant credits before you run low.
 
 Every section is hands-on with copy‑paste curl calls, clear field tables, and the exact responses you should expect so you can integrate with confidence. 
 
-Start at authorization, explore transactional sending, then check credits to round out the flow; all endpoints share the base URL below.
+Start at authorization, explore transactional sending, inquire message status, then check credits to round out the flow; all endpoints share the base URL below.
 
 ## Endpoints
 ```
@@ -22,34 +22,51 @@ https://api.nipamail.com
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/auth/tokens \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=client_credentials&client_id=<APP_ID>&client_secret=<APP_SECRET>"
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "grant_type": "client_credentials",
+    "client_id": "<CLIENT_ID>",
+    "client_secret": "<CLIENT_SECRET>"
+}
+JSON
 ```
 
 Use the returned `access_token` as `Bearer <TOKEN>` in the next steps.
 
-2) Send a transactional email (inline HTML) 
+2) Send a transactional email (Base64 encoded HTML)
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "Sender <no-reply@yourdomain.com>",
-      "recipient": "user@example.com",
-      "subject": "Welcome to NipaMail",
-      "html": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGJvZHk+PGgxPldlbGNvbWUgdG8gTmlwYU1haWw8L2gxPjxwPlRoaXMgaXMgYW4gaW5saW5lIEhUTUwuPC9wPjwvYm9keT48L2h0bWw+"
+        "sender": "Sender <no-reply@yourdomain.com>",
+        "recipient": "user@example.com",
+        "subject": "Welcome to NipaMail",
+        "html": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGJvZHk+PGgxPldlbGNvbWUgdG8gTmlwYU1haWw8L2gxPjxwPlRoaXMgaXMgYW4gaW5saW5lIEhUTUwuPC9wPjwvYm9keT48L2h0bWw+"
     }
-  }'
+}
+JSON
 ```
 
 Swap `template_id` and `template_values` in place of `html` if you want to render a stored template.
 
-3) Check tenant credits  
+3) Inquire transactional message status
+
+Use the `id` returned from the send response as `transactional_message_id`.
+
+```bash
+curl -X GET https://api.nipamail.com/v1/messages/<transactional_message_id> \
+    -H "Authorization: Bearer <TOKEN>"
+```
+
+4) Check tenant credits
 
 ```bash
 curl -X GET https://api.nipamail.com/v1/credits \
-  -H "Authorization: Bearer <TOKEN>"
+    -H "Authorization: Bearer <TOKEN>"
 ```

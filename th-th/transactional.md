@@ -12,46 +12,48 @@ POST /v1/messages
 
 | ฟิลด์           | บังคับ | คำอธิบาย             |
 | --------------- | ------ | -------------------- |
-| `Content-Type`  | Yes    | `application/json`   |
-| `Authorization` | Yes    | ใช้ `Bearer <TOKEN>` |
+| `Content-Type`  | ใช่   | `application/json`   |
+| `Authorization` | ใช่   | ใช้ `Bearer <TOKEN>` |
 
 #### บอดี้คำขอ
 
 ```json
 {
-  "type": "EMAIL" | "SMS",
-  "message": {
-    "sender": "<sender name>",
-    "recipient": "<target email>",
-    "subject": "<string>",
-    "template_id": "<template identifier>",     // ต้องระบุเมื่อไม่มี html
-    "html": "<base64 encoded html>",            // ต้องระบุเมื่อไม่มี template_id
-    "template_values": {
-      "[key]": "value"
-    },
-    "attachments": [
-      {
-        "type": "ASSET" | "RAW",
-        "content": "<base64 payload or asset id>",
-        "file_name": "<download name>"
-      }
-    ]
-  }
+    "type": "EMAIL" | "SMS",
+    "message": {
+        "sender": "<sender name>",
+        "recipient": "<target email>",
+        "subject": "<string>",
+        "template_id": "<template identifier>",     // ต้องระบุเมื่อไม่มี html
+        "html": "<base64 encoded html>",            // ต้องระบุเมื่อไม่มี template_id
+        "selector": "<dkim selector>",
+        "template_values": {
+            "[key]": "value"
+        },
+        "attachments": [
+            {
+                "type": "ASSET" | "RAW",
+                "content": "<base64 payload or asset id>",
+                "file_name": "<download name>"
+            }
+        ]
+    }
 }
 ```
 
 | ฟิลด์                             | บังคับ      | คำอธิบาย                                                                             |
 | --------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
-| `type`                            | Yes         | ใช้ `EMAIL` สำหรับอีเมล                                                              |
-| `message.sender`                  | Yes         | โดเมนผู้ส่งที่ลงทะเบียนแล้ว                                                          |
-| `message.recipient`               | Yes         | อีเมลผู้รับ                                                                          |
-| `message.subject`                 | Yes         | Subject ของอีเมล ต้องไม่เป็นค่าว่าง ไม่ใส่อีโมจิ และไม่ขึ้นต้นด้วย `Re:` หรือ `Fwd:` |
-| `message.template_id`             | Conditional | ระบุเมื่อไม่ส่ง `message.html`; อ้างถึงเทมเพลตก่อนหน้า                               |
-| `message.html`                    | Conditional | HTML ที่เข้ารหัส base64 เมื่อไม่ใช้เทมเพลต                                           |
-| `message.template_values`         | No          | key/value ที่ใช้เรนเดอร์ตัวแปรในเทมเพลต                                              |
-| `message.attachments[].type`      | No          | กำหนดชนิด `content`: `ASSET` อ้างอิง Asset ID, `RAW` ใช้ base64 แปะมา                |
-| `message.attachments[].content`   | No          | เพย์โหลดหรือรหัสอ้างอิง ขึ้นกับ `type`                                               |
-| `message.attachments[].file_name` | No          | ชื่อไฟล์ที่ผู้รับจะเห็นเวลาดาวน์โหลด                                                 |
+| `type`                            | ใช่         | ใช้ `EMAIL` สำหรับข้อความอีเมล                                                        |
+| `message.sender`                  | ใช่         | โดเมนผู้ส่งที่ลงทะเบียนแล้ว                                                          |
+| `message.recipient`               | ใช่         | อีเมลผู้รับหนึ่งราย                                                                  |
+| `message.subject`                 | ใช่         | หัวข้ออีเมล ต้องไม่เป็นค่าว่าง ไม่มีอีโมจิ และไม่ขึ้นต้นด้วย `Re:` หรือ `Fwd:` |
+| `message.template_id`             | ตามเงื่อนไข | ระบุเมื่อไม่ได้ส่ง `message.html`; อ้างอิงเทมเพลตที่บันทึกไว้                        |
+| `message.html`                    | ตามเงื่อนไข | เนื้อหา HTML ที่เข้ารหัส Base64 เมื่อไม่ได้อ้างอิงเทมเพลต                            |
+| `message.selector`                | ไม่ใช่      | DKIM selector ที่ต้องการใช้เมื่อโดเมนผู้ส่งมี DKIM record ที่ใช้งานอยู่มากกว่าหนึ่งรายการ |
+| `message.template_values`         | ไม่ใช่      | ชุด key/value ที่ส่งเข้าไปใช้ระหว่างเรนเดอร์เทมเพลต                                  |
+| `message.attachments[].type`      | ไม่ใช่      | กำหนดชนิดของ `content`: `ASSET` อ้างอิง asset ID จาก asset manager, `RAW` ใช้ Base64 แบบ inline |
+| `message.attachments[].content`   | ไม่ใช่      | payload หรือรหัส asset ขึ้นอยู่กับ `type`                                            |
+| `message.attachments[].file_name` | ไม่ใช่      | ชื่อไฟล์ดาวน์โหลดที่แสดงให้ผู้รับเห็น                                                |
 
 ---
 
@@ -61,12 +63,20 @@ POST /v1/messages
 
 สร้างข้อความสำเร็จ
 
+#### เฮดเดอร์
+| ฟิลด์ | คำอธิบาย |
+| --- | --- |
+| `x-ratelimit-remaining` | จำนวนคำขอที่ยังส่งได้ก่อนถึงขีดจำกัด |
+| `x-ratelimit-reset` | เวลา epoch หรือจำนวนวินาทีจนกว่าช่วง rate limit ปัจจุบันจะรีเซ็ต |
+| `x-ratelimit-limit` | จำนวนคำขอทั้งหมดที่อนุญาตในช่วง rate limit ปัจจุบัน |
+| `retry-after` | เวลาที่ไคลเอนต์ควรรอเป็นวินาทีก่อนลองส่งคำขอใหม่ |
+
 ```json
 {
-  "id": "<message id>",
-  "status": "<status>",
-  "updated_at": "<timestamp>",
-  "cost": <number>
+    "id": "<message id>",
+    "status": "<status>",
+    "updated_at": "<timestamp>",
+    "cost": <number>
 }
 ```
 
@@ -75,124 +85,159 @@ POST /v1/messages
 | `id`         | รหัสข้อความธุรกรรม                       |
 | `status`     | สถานะข้อความ                             |
 | `updated_at` | เวลาที่อัปเดตล่าสุด                      |
-| `cost`       | เครดิตที่ใช้ (เก็บเป็นจำนวนเต็ม คูณ 100) |
+| `cost`       | เครดิตที่ใช้                               |
 
 **400 – Bad Request**
 
-บอดี้คำขอไม่ผ่านการตรวจสอบความถูกต้อง
+เมื่อส่งบอดี้คำขอผิดรูปแบบ ระบบจะตอบกลับ `ValidationError`
 
 ```json
 {
-  "type": "ValidationError",
-  "errors": [
-    {
-      "target": {
-        "type": "PUSH"
-      },
-      "property": "type",
-      "children": [],
-      "constraints": {
-        "isOneOf": "type must be one of 'EMAIL', 'SMS'"
-      }
-    }
-  ]
+    "type": "ValidationError",
+    "errors": [
+        {
+            "target": {
+                "type": "PUSH"
+            },
+            "property": "type",
+            "children": [],
+            "constraints": {
+                "isOneOf": "type must be one of 'EMAIL', 'SMS'"
+            }
+        }
+    ]
 }
 ```
 
 **401 – Unauthorized**
 
-ข้อมูลยืนยันตัวตนไม่ถูกต้อง หรือถูกจำกัดด้วย CIDR
+โทเค็นหมดอายุ หรือถูกจำกัด IP ที่สามารถขอส่งข้อความได้
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
 **404 – Not Found**
 
-กรณี `template_id` ที่ระบุไม่พบ จะคืน `TemplateNotFoundError`
+กรณี `template_id` ที่ระบุไม่พบ ระบบจะตอบกลับ `TemplateNotFoundError`
 
 ```json
 {
-  "type": "TemplateNotFoundError",
-  "message": "The template specified could not be found."
+    "type": "TemplateNotFoundError",
+    "message": "The template specified could not be found."
 }
 ```
 
 **404 – Not Found**
 
-กรณีไฟล์แนบแบบ `ASSET` ไม่พบใน asset manager จะคืน `AssetNotFoundError`
+เมื่อไฟล์แนบหนึ่งรายการขึ้นไปที่อ้างอิงใน `attachments[].content` โดยมีชนิดเป็น `ASSET` ไม่มีอยู่ใน asset manager ระบบจะตอบกลับ `AssetNotFoundError`
 
 ```json
 {
-  "type": "AssetNotFoundError",
-  "message": "One or more of the specified assets could not be found."
+    "type": "AssetNotFoundError",
+    "message": "One or more of the specified assets could not be found."
 }
 ```
 
 **406 – Not Acceptable**
 
-หากโดเมนผู้ส่งไม่ใช่โดเมนที่ลงทะเบียน จะคืน `InvalidSenderError`
+เมื่อโดเมนผู้ส่งที่ระบุไม่ใช่หนึ่งในโดเมนผู้ส่งที่ลงทะเบียนไว้ หรือโดเมนที่ลงทะเบียนตรวจสอบ DKIM, SPF หรือ DMARC ไม่ผ่าน ระบบจะตอบกลับ `InvalidSenderError`
 
 ```json
 {
-  "type": "InvalidSenderError",
-  "message": "The specified sender domain is not registered."
+    "type": "InvalidSenderError",
+    "message": "The specified sender domain is not registered."
 }
 ```
 
 **406 – Not Acceptable**
 
-หากเครดิตคงเหลือไม่พอ จะคืน `InsufficientCreditError`
+เมื่ออีเมลผู้รับไม่ถูกต้อง เช่นผิดรูปแบบของอีเมลล์  ระบบจะตอบกลับ `InvalidRecipientError`
 
 ```json
 {
-  "type": "InsufficientCreditError",
-  "message": "Your credit balance is insufficient."
+    "type": "InvalidRecipientError",
+    "message": "The specified recipient is invalid."
 }
 ```
 
 **406 – Not Acceptable**
 
-หากขนาดไฟล์แนบรวมเกินเพดาน จะคืน `TotalAttachmentSizeExceededError`
+เมื่อยอดเครดิตในบัญชีไม่เพียงพอ ระบบจะตอบกลับ `InsufficientCreditError`
 
 ```json
 {
-  "type": "TotalAttachmentSizeExceededError",
-  "message": "The total size of attachments exceeds the allowed limit."
+    "type": "InsufficientCreditError",
+    "message": "Your credit balance is insufficient."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อขนาดรวมของไฟล์แนบที่ระบุเกินขีดจำกัด ระบบจะตอบกลับ `TotalAttachmentSizeExceededError`
+
+```json
+{
+    "type": "TotalAttachmentSizeExceededError",
+    "message": "The total size of attachments exceeds the allowed limit."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อจำนวนไฟล์แนบเกินขีดจำกัดของ tenant ระบบจะตอบกลับ `TotalAttachmentCountExceededError`
+
+```json
+{
+    "type": "TotalAttachmentCountExceededError",
+    "message": "The total number of attachments exceeds the allowed limit."
+}
+```
+
+**429 – TooManyRequests**
+
+เมื่อไคลเอนต์ส่งคำขอส่งข้อความเกินจำนวนที่อนุญาตในช่วง rate limit ปัจจุบัน ระบบจะตอบกลับ `TooManyRequestsError`
+
+```json
+{
+    "type": "TooManyRequestsError",
+    "message": "Rate limit exceeded, retry in 5 seconds."
 }
 ```
 
 **500 – Internal Server Error**
 
-ข้อผิดพลาดภายในระบบ จะคืน `InternalServerError`
+เมื่อเกิดข้อผิดพลาดร้ายแรงภายในระบบ ระบบจะตอบกลับ `InternalServerError`
 
 ```json
 {
-  "type": "InternalServerError",
-  "message": "Something went wrong, please try again later."
+    "type": "InternalServerError",
+    "message": "Something went wrong, please try again later."
 }
 ```
 
 ### ตัวอย่าง: ส่ง HTML แบบ inline ด้วย `curl`
 
-เข้ารหัส HTML เป็น base64 (ไม่มีบรรทัดใหม่) แล้วใส่ใน `message.html`
+เข้ารหัส HTML เป็น Base64 (ไม่มีขึ้นบรรทัดใหม่) แล้วใส่ใน `message.html`
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "html": "<base64-encoded-html>"
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "html": "<base64-encoded-html>"
     }
-  }'
+}
+JSON
 ```
 
 ### ตัวอย่าง: ใช้เทมเพลตและตัวแปรด้วย `curl`
@@ -201,81 +246,87 @@ curl -X POST https://api.nipamail.com/v1/messages \
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "first_name": "<first name>",
-        "cta_url": "<cta url>"
-      }
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "first_name": "<first name>",
+            "cta_url": "<cta url>"
+        }
     }
-  }'
+}
+JSON
 ```
 
-### ตัวอย่าง: ใช้เทมเพลต ใส่ตัวแปร และแนบไฟล์แบบ ASSET ด้วย `curl`
+### ตัวอย่าง: ใช้เทมเพลต ใส่ตัวแปร และแนบไฟล์แบบ `ASSET` ด้วย `curl`
 
-อ้างอิงไฟล์แนบที่อัปโหลดแล้วด้วย Asset ID
+อ้างอิงไฟล์แนบที่อัปโหลดแล้วด้วย asset ID
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "full_name": "<full name>",
-        "statement_month": "<statement month>"
-      },
-      "attachments": [
-        {
-          "type": "ASSET",
-          "content": "<asset id>",
-          "file_name": "<attachment name>"
-        }
-      ]
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "full_name": "<full name>",
+            "statement_month": "<statement month>"
+        },
+        "attachments": [
+            {
+                "type": "ASSET",
+                "content": "<asset id>",
+                "file_name": "<attachment name>"
+            }
+        ]
     }
-  }'
+}
+JSON
 ```
 
-### ตัวอย่าง: ใช้เทมเพลต ใส่ตัวแปร และแนบไฟล์ base64 แบบ RAW ด้วย `curl`
+### ตัวอย่าง: ใช้เทมเพลต ใส่ตัวแปร และแนบไฟล์ Base64 แบบ `RAW` ด้วย `curl`
 
-เข้ารหัสไฟล์เป็น base64 แล้วตั้ง `attachments[].type` เป็น `RAW`
+เข้ารหัสไฟล์เป็น Base64 แล้วตั้ง `attachments[].type` เป็น `RAW`
 
 ```bash
 curl -X POST https://api.nipamail.com/v1/messages \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
     "type": "EMAIL",
     "message": {
-      "sender": "<sender display name> <<sender@yourdomain.com>>",
-      "recipient": "<recipient@example.com>",
-      "subject": "<subject line>",
-      "template_id": "<template id>",
-      "template_values": {
-        "full_name": "<full name>",
-        "statement_month": "<statement month>"
-      },
-      "attachments": [
-        {
-          "type": "RAW",
-          "content": "<base64-encoded-file>",
-          "file_name": "<attachment name>"
-        }
-      ]
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "template_id": "<template id>",
+        "template_values": {
+            "full_name": "<full name>",
+            "statement_month": "<statement month>"
+        },
+        "attachments": [
+            {
+                "type": "RAW",
+                "content": "<base64-encoded-file>",
+                "file_name": "<attachment name>"
+            }
+        ]
     }
-  }'
+}
+JSON
 ```
 
 ---
@@ -292,143 +343,345 @@ GET /v1/messages/{transactional_message_id}
 
 | ฟิลด์                      | บังคับ | คำอธิบาย                     |
 | -------------------------- | ------ | ---------------------------- |
-| `transactional_message_id` | Yes    | รหัสข้อความธุรกรรมที่ต้องการ |
+| `transactional_message_id` | ใช่   | รหัสข้อความธุรกรรมที่ต้องการ |
 
 #### เฮดเดอร์
 
 | ฟิลด์           | บังคับ | คำอธิบาย             |
 | --------------- | ------ | -------------------- |
-| `Authorization` | Yes    | ใช้ `Bearer <TOKEN>` |
+| `Authorization` | ใช่   | ใช้ `Bearer <TOKEN>` |
 
 ### การตอบกลับ
 
 **200 – OK**
 
-พบข้อมูลข้อความที่ต้องการ
+ส่งกลับรายละเอียดของข้อความธุรกรรมที่ระบุ
 
 ```json
 {
-  "id": "<message id>",
-  "status": "<status>",
-  "sender": "<sender name> <<sender@example.com>>",
-  "recipient": "<recipient@example.com>",
-  "opened": <number>,
-  "clicked": <number>,
-  "cost": <number>,
-  "created_at": "<timestamp>",
-  "updated_at": "<timestamp>",
-  "status_logs": [
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    },
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    },
-    {
-      "status": "<status>",
-      "response": {
-        "code": <number>,
-        "content": "<provider response>"
-      },
-      "timestamp": <epoch-ms>,
-      "created": <epoch-ms>,
-      "error_message": "<error message | null>"
-    }
-  ]
+    "id": "<message id>",
+    "result": "<result>",
+    "status": "<status>",
+    "sender": "<sender name> <<sender@example.com>>",
+    "recipient": "<recipient@example.com>",
+    "opened": <number>,
+    "clicked": <number>,
+    "cost": <number>,
+    "created_at": "<timestamp>",
+    "updated_at": "<timestamp>",
+    "retry_attempts": <number>,
+    "status_logs": [
+        {
+            "result": "<result>",
+            "status": "<status>",
+            "response": {
+                "code": <number>,
+                "content": "<provider response>"
+            },
+            "timestamp": <epoch-ms>,
+            "created": <epoch-ms>
+        },
+        {
+            "result": "<result>",
+            "status": "<status>",
+            "details": "<system detail>",
+            "response": null,
+            "timestamp": <epoch-ms>,
+            "created": <epoch-ms>
+        }
+    ]
 }
 
 ```
 
 | ฟิลด์                            | ชนิด                | คำอธิบาย                                                |
 | -------------------------------- | ------------------- | ------------------------------------------------------- |
-| `id`                             | string              | รหัสล็อกข้อความที่ส่งกลับจาก `MessageLogDetailResponse` |
-| `status`                         | MessageLogStatus    | สถานะล่าสุดของการส่ง                                    |
+| `id`                             | string              | รหัสข้อความธุรกรรม                                       |
+| `result`                         | EmailMessageResult  | ผลลัพธ์ระดับสูง: `Processing`, `Ok`, `HardBounce`, `SoftBounce` หรือ `Error` |
+| `status`                         | MessageLogStatus    | สถานะการส่งล่าสุดที่บันทึกไว้ของข้อความ                 |
 | `sender`                         | string              | อีเมล/ชื่อผู้ส่งที่ใช้                                  |
 | `recipient`                      | string              | อีเมลผู้รับ                                             |
-| `opened`                         | number              | จำนวนครั้งที่เปิดอีเมล (ที่ติดตามได้)                   |
-| `clicked`                        | number              | จำนวนคลิก (ที่ติดตามได้)                                |
-| `cost`                           | number              | เครดิตที่ใช้ คิดเป็นจำนวนเต็ม                 |
-| `created_at`                     | Date                | เวลาเริ่มสร้างล็อก                                      |
-| `updated_at`                     | Date                | เวลาอัปเดตล็อกล่าสุด                                    |
-| `status_logs`                    | StatusLogResponse[] | ลำดับเหตุการณ์สถานะการส่ง                               |
-| `status_logs[].status`           | MessageLogStatus    | สถานะในแต่ละเหตุการณ์                                   |
-| `status_logs[].response.code`    | number              | โค้ดตอบกลับจากผู้ให้บริการ/MTA                          |
-| `status_logs[].response.content` | string              | ข้อความตอบกลับดิบจากผู้ให้บริการ                        |
-| `status_logs[].timestamp`        | number              | เวลาที่ผู้ให้บริการกระทำเหตุการณ์ (epoch ms)            |
-| `status_logs[].created`          | number              | เวลาที่บันทึกสถานะ (epoch ms)                           |
-| `status_logs[].error_message`    | string              | ข้อความผิดพลาด ถ้ามี                                    |
+| `opened`                         | number              | จำนวนการเปิดอีเมลที่ติดตามได้ทั้งหมด              |
+| `clicked`                        | number              | จำนวนการคลิกลิงก์ที่ติดตามได้ทั้งหมด              |
+| `cost`                           | number              | เครดิตที่เกิดขึ้นจากการส่งข้อความ                       |
+| `created_at`                     | Date                | เวลาที่สร้างรายการล็อก                                  |
+| `updated_at`                     | Date                | เวลาที่รายการล็อกเปลี่ยนแปลงล่าสุด                      |
+| `retry_attempts`                 | number              | จำนวนครั้งที่ลองส่งซ้ำไปแล้วสำหรับข้อความนี้            |
+| `status_logs`                    | StatusLogResponse[] | รายการการเปลี่ยนสถานะการส่งตามลำดับเวลา                 |
+| `status_logs[].result`           | EmailMessageResult  | ผลลัพธ์ระดับสูงที่บันทึกในล็อกสถานะนี้                  |
+| `status_logs[].status`           | MessageLogStatus    | สถานะที่บันทึกไว้ในรายการล็อก                           |
+| `status_logs[].response`         | object \| null      | ออบเจกต์ตอบกลับจาก transport/MTA หรือ `null` สำหรับล็อกสถานะของระบบ |
+| `status_logs[].response.code`    | number \| null      | โค้ดตอบกลับจากผู้ให้บริการปลายทาง/MTA                          |
+| `status_logs[].response.content` | string \| null      | ข้อความตอบกลับจากผู้ให้บริการปลายทาง                        |
+| `status_logs[].details`          | string              | รายละเอียดระบบเพิ่มเติมสำหรับล็อกสถานะของระบบ           |
+| `status_logs[].timestamp`        | number              | เวลาจากผู้ให้บริการปลายทาง (epoch ms)              |
+| `status_logs[].created`          | number              | เวลาที่บันทึกสถานะ (epoch ms)                       |
 
 #### ความหมายของ `MessageLogStatus`
 
-| สถานะ                | ความหมาย                                   |
-| -------------------- | ------------------------------------------ |
-| `Created`            | บันทึกคำขอแล้ว แต่ยังไม่ส่งไปผู้ให้บริการ  |
-| `Accepted`           | ผู้ให้บริการรับคำขอแล้ว                    |
-| `Delivered`          | ผู้ให้บริการยืนยันว่าปลายทางรับข้อความแล้ว |
-| `Deferred`           | ผู้ให้บริการเลื่อนการส่ง จะลองใหม่ภายหลัง  |
-| `TimedOut`           | ส่งไม่สำเร็จภายในเวลาที่กำหนด              |
-| `Feedback`           | ผู้รับแจ้งปัญหา/ร้องเรียน (feedback loop)  |
-| `TechnicalError`     | ข้อผิดพลาดภายในระบบ                        |
-| `InsufficientCredit` | ส่งไม่สำเร็จเพราะเครดิตไม่พอ               |
-| `Blocked`            | ผู้รับถูกบล็อกจาก blocklist                |
+| Result       | Status                 | ความหมาย                                                                                                      |
+| ------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `Processing` | `Created`              | บันทึกคำขอส่งข้อความแล้ว แต่ยังไม่ได้รับการตอบรับจาก message transport agent |
+| `Processing` | `Accepted`             | message transport agent ตอบรับคำขอส่งข้อความแล้ว |
+| `Processing` | `Deferred`             | message transport agent เลื่อนการส่งข้อความออกไป และจะลองส่งใหม่ภายหลัง |
+| `Ok`         | `Delivered`            | ผู้ให้บริการของผู้รับยืนยันว่าเซิร์ฟเวอร์ของผู้รับได้รับข้อความแล้ว |
+| `Error`      | `TimedOut`             | การดำเนินการภายในระบบหมดเวลาก่อนเสร็จสมบูรณ์ |
+| `Error`      | `TechnicalError`       | ข้อผิดพลาดภายในระบบทำให้ไม่สามารถส่งข้อความได้ |
+| `Error`      | `Feedback`             | ผู้รับส่ง feedback/complaint ผ่าน feedback loop |
+| `Error`      | `InsufficientCredit`   | ส่งไม่สำเร็จเพราะ tenant มีเครดิตไม่เพียงพอ |
+| `Error`      | `Blocked`              | ผู้รับถูกบล็อกโดย blocklist ของ NipaMail |
+| `HardBounce` | `InvalidRecipient`     | อีเมลล์ของผู้รับไม่ถูกต้อง หรือ mailbox ไม่มีอยู่จริง |
+| `HardBounce` | `InactiveMailbox`      | mailbox มีอยู่ แต่ถูกปิดใช้งาน ถูกระงับ หรือปิดบัญชีแล้ว |
+| `HardBounce` | `BadDomain`            | โดเมนผู้รับตั้งค่าไม่ถูกต้อง หรือไม่มี MX record ที่ใช้งานได้ |
+| `HardBounce` | `InvalidSender`        | ผู้ส่ง/โดเมนไม่ได้รับอนุญาต หรือไม่ผ่านการตรวจสอบ DKIM, SPF หรือ DMARC |
+| `HardBounce` | `NoAnswerFromHost`     | พบที่อยู่ Host ผู้ให้บริการของผู้รับ แต่ Host ไม่ตอบสนองกับคำขอส่งข้อความ |
+| `HardBounce` | `DNSFailure`           | ผู้รับค้นหา DNS ล้มเหลว เช่น ไม่มี MX |
+| `HardBounce` | `MessageExpired`       | ช่วงเวลาการส่งหมดลงก่อนที่ message transport agent จะส่งข้อความสำเร็จ |
+| `HardBounce` | `ProviderRejected`     | ผู้ให้บริการของผู้รับปฏิเสธการรับข้อความและมี error message ที่ไม่เข้ากับ hard bounce อื่น ๆ |
+| `SoftBounce` | `QuotaIssues`          | Mailbox ของผู้รับเต็มหรือไฟล์แนบมีขนาดใหญ่เกินที่ผู้รับจะรับได้ |
+| `SoftBounce` | `BadConnection`        | การเชื่อมต่อไปยังผู้ให้บริการของผู้รับล้มเหลวหรือถูกตัด |
+| `SoftBounce` | `RoutingErrors`        | ผู้ให้บริการของผู้รับปฏิเสธการ relay หรือไม่สามารถ route ไปยังผู้รับได้ |
+| `SoftBounce` | `ProtocolErrors`       | ลำดับคำสั่งของ SMTP ถูกปฏิเสธหรือไม่สามารถเชื่อมต่อด้วยการขอเข้ารหัส (STARTTLS) กับผู้ให้บริการของผู้รับได้ |
+| `SoftBounce` | `AuthenticationFailed` | ผู้รับตรวจสอบ DKIM, DMARC หรือ SPF ของผู้ส่งไม่ผ่าน |
+| `SoftBounce` | `PolicyRelated`        | ถูกปฏิเสธตามนโยบายของผู้ให้บริการของผู้รับ หรือขัดต่อข้อจำกัดการใช้งาน |
+| `SoftBounce` | `SpamContent`          | เนื้อหาข้อความถูกจัดว่าเป็นสแปมหรือไวรัส |
+| `SoftBounce` | `SpamBlock`            | การส่งถูกบล็อกเนื่องจากชื่อเสียงของผู้ส่ง/IP/โดเมน หรือ blocklist |
+| `SoftBounce` | `GenericSoftBounce`    | ผู้ให้บริการของผู้รับปฏิเสธการรับข้อความและมี error message ที่ไม่เข้ากับ soft bounce อื่น ๆ |
 
-**Bounce statuses**
+#### รายละเอียดการส่งซ้ำและการตัดเครดิตของ bounce
 
-ข้อความอาจประสบปัญหาที่จัดอยู่ในกลุ่ม bounce ดังนี้
+เครื่องหมาย `*` หมายถึงมีการตัดเครดิตเมื่อไม่พบผู้รับนั้นในครั้งแรกเท่านั้น ครั้งถัดไปจะถูกบล็อกโดย blocklist ของ NipaMail
 
-| สถานะ                  | ความหมาย                                            | ประเภทบาวน์ซ์ | ลองส่งซ้ำได้ | ตัดเครดิต                           |
-| ---------------------- | --------------------------------------------------- | ------------- | ------------ | ----------------------------------- |
-| `InvalidRecipient`     | อีเมลผู้รับไม่ถูกต้องหรือไม่มีอยู่จริง              | Hard          | No           | Yes\*                               |
-| `BadDomain`            | โดเมนผู้รับตั้งค่าไม่ถูกต้องหรือไม่มี MX            | Hard          | No           | No                                  |
-| `InactiveMailbox`      | กล่องจดหมายถูกปิดใช้งาน ระงับ หรือปิดบัญชี          | Hard          | No           | Yes\*                               |
-| `InvalidSender`        | ผู้ส่ง/โดเมนไม่อนุญาตหรือไม่ผ่านการยืนยัน           | Hard          | No           | Yes                                 |
-| `QuotaIssues`          | กล่องจดหมายผู้รับเต็มหรือเกินขนาดไฟล์แนบ            | Soft          | Yes          | Yes                                 |
-| `NoAnswerFromHost`     | เซิร์ฟเวอร์ปลายทางไม่ตอบสนองระหว่างส่ง              | Hard          | No           | No                                  |
-| `BadConnection`        | การเชื่อมต่อกับโฮสต์ปลายทางล้มเหลวหรือหลุด          | Soft          | Yes          | No                                  |
-| `DNSFailure`           | ค้นหา DNS ของโดเมนผู้รับล้มเหลว (เช่น ไม่มี MX)     | Hard          | No           | No                                  |
-| `RoutingErrors`        | ผู้ให้บริการปฏิเสธรีเลย์หรือหาทางส่งไม่ได้          | Soft          | Yes          | No                                  |
-| `MessageExpired`       | หมดเวลาส่งก่อนที่ผู้ให้บริการจะส่งสำเร็จ            | Hard          | No           | No                                  |
-| `ProtocolErrors`       | ลำดับ/ไวยากรณ์คำสั่ง SMTP ถูกปฏิเสธ                 | Soft          | Yes          | No                                  |
-| `AuthenticationFailed` | ตรวจสอบตัวตน/DMARC/SPF ไม่ผ่าน                      | Soft          | Yes          | No                                  |
-| `PolicyRelated`        | ถูกปฏิเสธด้วยเหตุผลเชิงนโยบายหรือ AUP               | Soft          | No           | Yes                                 |
-| `SpamContent`          | เนื้อหาข้อความถูกจัดเป็นสแปมหรือไวรัส               | Soft          | No           | Yes                                 |
-| `SpamBlock`            | ปิดกั้นเพราะชื่อเสียงของผู้ส่ง/IP/โดเมน             | Soft          | Yes          | Yes                                 |
-| `ProviderRejected`     | ผู้ให้บริการปฏิเสธนอกรูปแบบบาวน์ซ์                  | Hard          | No           | Yes                                 |
-
-*การตัดเครดิตเกิดขึ้นเฉพาะการส่งครั้งแรกของผู้รับรายนั้น ครั้งถัดไปจะถูกบล็อกจาก blocklist ของเรา
+| Result       | Status                 | ส่งซ้ำ | ตัดเครดิต |
+| ------------ | ---------------------- | ------ | --------- |
+| `HardBounce` | `InvalidRecipient`     | ไม่ใช่ | ใช่ *     |
+| `HardBounce` | `InactiveMailbox`      | ไม่ใช่ | ใช่ *     |
+| `HardBounce` | `BadDomain`            | ไม่ใช่ | ไม่ใช่    |
+| `HardBounce` | `InvalidSender`        | ไม่ใช่ | ใช่       |
+| `HardBounce` | `NoAnswerFromHost`     | ไม่ใช่ | ไม่ใช่    |
+| `HardBounce` | `DNSFailure`           | ไม่ใช่ | ไม่ใช่    |
+| `HardBounce` | `MessageExpired`       | ไม่ใช่ | ไม่ใช่    |
+| `HardBounce` | `ProviderRejected`     | ไม่ใช่ | ใช่       |
+| `SoftBounce` | `QuotaIssues`          | ใช่    | ใช่       |
+| `SoftBounce` | `BadConnection`        | ใช่    | ไม่ใช่    |
+| `SoftBounce` | `RoutingErrors`        | ใช่    | ไม่ใช่    |
+| `SoftBounce` | `ProtocolErrors`       | ใช่    | ไม่ใช่    |
+| `SoftBounce` | `AuthenticationFailed` | ใช่    | ไม่ใช่    |
+| `SoftBounce` | `PolicyRelated`        | ไม่ใช่ | ใช่       |
+| `SoftBounce` | `SpamContent`          | ไม่ใช่ | ใช่       |
+| `SoftBounce` | `SpamBlock`            | ใช่    | ใช่       |
+| `SoftBounce` | `GenericSoftBounce`    | ใช่ | ไม่ใช่    |
 
 **401 – Unauthorized**
 
-ข้อมูลยืนยันตัวตนไม่ถูกต้อง หรือถูกจำกัดด้วย CIDR
+โทเค็นหมดอายุ หรือถูกจำกัด IP ที่สามารถขอส่งข้อความได้
 
 ```json
 {
-  "type": "UnauthorizedError",
-  "message": "Invalid credentials or restricted by CIDR."
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
 }
 ```
 
 **404 – Not Found**
 
-หากไม่พบข้อความที่ระบุ จะคืน `MessageNotFoundError`
+เมื่อไม่พบข้อความธุรกรรมที่ระบุ ระบบจะตอบกลับ `MessageNotFoundError`
 
 ```json
 {
-  "type": "MessageNotFoundError",
-  "message": "The message specified could not be found."
+    "type": "MessageNotFoundError",
+    "message": "The message specified could not be found."
 }
 ```
+
+## ส่งข้อความธุรกรรมซ้ำ
+
+**แพ็กเกจ: Enterprise**
+
+API นี้ช่วยส่งข้อความซ้ำโดยใช้บอดี้คำขอเดียวกับการส่งครั้งแรก เหมาะสำหรับกรณีที่การส่งข้อความก่อนหน้าล้มเหลวและเข้าเงื่อนไขให้ส่งซ้ำได้
+
+### คำขอ
+
+```http
+PUT /v1/messages/{transactional_message_id}
+```
+
+#### เฮดเดอร์
+
+| ฟิลด์           | บังคับ | คำอธิบาย             |
+| --------------- | ------ | -------------------- |
+| `Content-Type`  | ใช่   | `application/json`   |
+| `Authorization` | ใช่   | ใช้ `Bearer <TOKEN>` |
+
+#### บอดี้คำขอ
+
+```json
+{
+    "type": "EMAIL" | "SMS",
+    "message": {
+        "sender": "<sender name>",
+        "recipient": "<target email>",
+        "subject": "<string>",
+        "template_id": "<template identifier>",     // ต้องระบุเมื่อไม่มี html
+        "html": "<base64 encoded html>",            // ต้องระบุเมื่อไม่มี template_id
+        "selector": "<dkim selector>",
+        "template_values": {
+            "[key]": "value"
+        },
+        "attachments": [
+            {
+                "type": "ASSET" | "RAW",
+                "content": "<base64 payload or asset id>",
+                "file_name": "<download name>"
+            }
+        ]
+    }
+}
+```
+
+| ฟิลด์                             | บังคับ      | คำอธิบาย                                                                             |
+| --------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| `type`                            | ใช่         | ใช้ `EMAIL` สำหรับข้อความอีเมล                                                        |
+| `message.sender`                  | ใช่         | โดเมนผู้ส่งที่ลงทะเบียนแล้ว                                                          |
+| `message.recipient`               | ใช่         | อีเมลผู้รับหนึ่งราย                                                                  |
+| `message.subject`                 | ใช่         | หัวข้ออีเมล ต้องไม่เป็นค่าว่าง ไม่มีอีโมจิ และไม่ขึ้นต้นด้วย `Re:` หรือ `Fwd:` |
+| `message.template_id`             | ตามเงื่อนไข | ระบุเมื่อไม่ได้ส่ง `message.html`; อ้างอิงเทมเพลตที่บันทึกไว้                        |
+| `message.html`                    | ตามเงื่อนไข | เนื้อหา HTML ที่เข้ารหัส Base64 เมื่อไม่ได้อ้างอิงเทมเพลต                            |
+| `message.selector`                | ไม่ใช่      | DKIM selector ที่ต้องการใช้เมื่อโดเมนผู้ส่งมี DKIM record ที่ใช้งานอยู่มากกว่าหนึ่งรายการ |
+| `message.template_values`         | ไม่ใช่      | ชุด key/value ที่ส่งเข้าไปใช้ระหว่างเรนเดอร์เทมเพลต                                  |
+| `message.attachments[].type`      | ไม่ใช่      | กำหนดชนิดของ `content`: `ASSET` อ้างอิง asset ID จาก asset manager, `RAW` ใช้ Base64 แบบ inline |
+| `message.attachments[].content`   | ไม่ใช่      | payload หรือรหัส asset ขึ้นอยู่กับ `type`                                            |
+| `message.attachments[].file_name` | ไม่ใช่      | ชื่อไฟล์ดาวน์โหลดที่แสดงให้ผู้รับเห็น                                                |
+
+---
+
+### การตอบกลับ
+
+**200 – OK**
+
+ส่งข้อความซ้ำสำเร็จ
+
+```json
+{
+    "status": "<status>",
+    "updated_at": "<timestamp>",
+    "current_attempt": <number>
+}
+```
+
+| ฟิลด์ | คำอธิบาย |
+| --- | --- |
+| `status` | สถานะข้อความ |
+| `updated_at` | เวลาที่อัปเดตล่าสุด |
+| `current_attempt` | จำนวนครั้งที่ลองส่งซ้ำ |
+
+**400 – Bad Request**
+
+เมื่อส่งบอดี้คำขอผิดรูปแบบ ระบบจะตอบกลับ `ValidationError`
+
+```json
+{
+    "type": "ValidationError",
+    "errors": [
+        {
+            "target": {
+                "type": "PUSH"
+            },
+            "property": "type",
+            "children": [],
+            "constraints": {
+                "isOneOf": "type must be one of 'EMAIL', 'SMS'"
+            }
+        }
+    ]
+}
+```
+
+**401 – Unauthorized**
+
+โทเค็นหมดอายุ หรือถูกจำกัด IP ที่สามารถขอส่งข้อความได้
+
+```json
+{
+    "type": "UnauthorizedError",
+    "message": "Invalid credentials or restricted by CIDR."
+}
+```
+
+**404 – Not Found**
+
+เมื่อ `transactional_message_id` ที่ระบุไม่มีอยู่ในประวัติการส่ง ระบบจะตอบกลับ `MessageNotFoundError`
+
+```json
+{
+    "type": "MessageNotFoundError",
+    "message": "The message specified could not be found."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อข้อมูลสำหรับการส่งซ้ำไม่ตรงกับข้อมูลข้อความเดิม ระบบจะตอบกลับ `RetryDataMismatchError`
+
+```json
+{
+    "type": "RetryContentMismatchError",
+    "message": "The content of the retried message does not match the original message."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อสถานะข้อความไม่อนุญาตให้ส่งซ้ำ ระบบจะตอบกลับ `MessageStatusNotAllowedToRetryError`
+
+```json
+{
+    "type": "RetryDeniedError",
+    "message": "The specified message is not eligible for retry."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่อจำนวนครั้งสูงสุดในการลองส่งซ้ำของข้อความนี้ถูกใช้ครบแล้ว ระบบจะตอบกลับ `MaxRetryAttemptsExceededError`
+
+```json
+{
+    "type": "MaxRetryAttemptsExceededError",
+    "message": "The maximum number of retry attempts on this message has been exceeded."
+}
+```
+
+**500 – Internal Server Error**
+
+เมื่อเกิดข้อผิดพลาดร้ายแรงภายในระบบ ระบบจะตอบกลับ `InternalServerError`
+
+```json
+{
+    "type": "InternalServerError",
+    "message": "Something went wrong, please try again later."
+}
+```
+
+### ตัวอย่าง: ส่ง HTML แบบ inline ซ้ำด้วย `curl`
+
+เข้ารหัส HTML เป็น Base64 (ไม่มีขึ้นบรรทัดใหม่) แล้วใส่ใน `message.html`
+
+```bash
+curl -X PUT https://api.nipamail.com/v1/messages/{transactional_message_id} \
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "type": "EMAIL",
+    "message": {
+        "sender": "<sender display name> <<sender@yourdomain.com>>",
+        "recipient": "<recipient@example.com>",
+        "subject": "<subject line>",
+        "html": "<base64-encoded-html>"
+    }
+}
+JSON
+```
+
+---
