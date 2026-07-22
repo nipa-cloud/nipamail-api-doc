@@ -87,6 +87,22 @@ POST /v1/messages
 | `updated_at` | เวลาที่อัปเดตล่าสุด                      |
 | `cost`       | เครดิตที่ใช้                               |
 
+#### ข้อผิดพลาดที่อาจเกิดขึ้น
+
+| สถานะ | ประเภท | เกิดขึ้นเมื่อ |
+| ------ | ------ | ------------- |
+| 400    | `ValidationError`                   | บอดี้คำขอผิดรูปแบบหรือไม่ผ่านการตรวจสอบ |
+| 401    | `UnauthorizedError`                 | ข้อมูลยืนยันตัวตนไม่ถูกต้อง หมดอายุ หรือถูกจำกัดด้วย CIDR |
+| 404    | `TemplateNotFoundError`             | ไม่พบ `template_id` ที่ระบุ |
+| 404    | `AssetNotFoundError`                | ไม่พบไฟล์แนบชนิด `ASSET` อย่างน้อยหนึ่งรายการ |
+| 406    | `InvalidSenderError`                | โดเมนผู้ส่งไม่ได้ลงทะเบียนหรือไม่สามารถใช้งานได้ |
+| 406    | `InvalidRecipientError`             | อีเมลหรือโดเมนของผู้รับไม่สามารถรับได้ |
+| 406    | `InsufficientCreditError`           | เครดิตในบัญชีไม่เพียงพอ |
+| 406    | `TotalAttachmentSizeExceededError`  | ขนาดรวมของไฟล์แนบเกินขีดจำกัด |
+| 406    | `TotalAttachmentCountExceededError` | จำนวนไฟล์แนบเกินขีดจำกัด |
+| 429    | `TooManyRequestsError`              | จำนวนคำขอเกินช่วง rate limit ปัจจุบัน |
+| 500    | `InternalServerError`               | เกิดข้อผิดพลาดภายในระบบที่ไม่คาดคิด |
+
 **400 – Bad Request**
 
 เมื่อส่งบอดี้คำขอผิดรูปแบบ ระบบจะตอบกลับ `ValidationError`
@@ -410,9 +426,9 @@ GET /v1/messages/{transactional_message_id}
 | `status_logs`                    | StatusLogResponse[] | รายการการเปลี่ยนสถานะการส่งตามลำดับเวลา                 |
 | `status_logs[].result`           | EmailMessageResult  | ผลลัพธ์ระดับสูงที่บันทึกในล็อกสถานะนี้                  |
 | `status_logs[].status`           | MessageLogStatus    | สถานะที่บันทึกไว้ในรายการล็อก                           |
-| `status_logs[].response`         | object \| null      | ออบเจกต์ตอบกลับจาก transport/MTA หรือ `null` สำหรับล็อกสถานะของระบบ |
-| `status_logs[].response.code`    | number \| null      | โค้ดตอบกลับจากผู้ให้บริการปลายทาง/MTA                          |
-| `status_logs[].response.content` | string \| null      | ข้อความตอบกลับจากผู้ให้บริการปลายทาง                        |
+| `status_logs[].response`         | object      | ออบเจกต์ตอบกลับจาก transport/MTA หรือ `null` สำหรับล็อกสถานะของระบบ |
+| `status_logs[].response.code`    | number      | โค้ดตอบกลับจากผู้ให้บริการปลายทาง/MTA                          |
+| `status_logs[].response.content` | string      | ข้อความตอบกลับจากผู้ให้บริการปลายทาง                        |
 | `status_logs[].details`          | string              | รายละเอียดระบบเพิ่มเติมสำหรับล็อกสถานะของระบบ           |
 | `status_logs[].timestamp`        | number              | เวลาจากผู้ให้บริการปลายทาง (epoch ms)              |
 | `status_logs[].created`          | number              | เวลาที่บันทึกสถานะ (epoch ms)                       |
@@ -471,6 +487,13 @@ GET /v1/messages/{transactional_message_id}
 | `SoftBounce` | `SpamContent`          | ไม่ใช่ | ใช่       |
 | `SoftBounce` | `SpamBlock`            | ใช่    | ใช่       |
 | `SoftBounce` | `GenericSoftBounce`    | ใช่ | ไม่ใช่    |
+
+#### ข้อผิดพลาดที่อาจเกิดขึ้น
+
+| สถานะ | ประเภท | เกิดขึ้นเมื่อ |
+| ------ | ------ | ------------- |
+| 401    | `UnauthorizedError`    | ข้อมูลยืนยันตัวตนไม่ถูกต้อง หมดอายุ หรือถูกจำกัดด้วย CIDR |
+| 404    | `MessageNotFoundError` | ไม่พบข้อความธุรกรรมที่ระบุ |
 
 **401 – Unauthorized**
 
@@ -574,6 +597,18 @@ PUT /v1/messages/{transactional_message_id}
 | `status` | สถานะข้อความ |
 | `updated_at` | เวลาที่อัปเดตล่าสุด |
 | `current_attempt` | จำนวนครั้งที่ลองส่งซ้ำ |
+
+#### ข้อผิดพลาดที่อาจเกิดขึ้น
+
+| สถานะ | ประเภท | เกิดขึ้นเมื่อ |
+| ------ | ------ | ------------- |
+| 400    | `ValidationError`                     | บอดี้คำขอผิดรูปแบบหรือไม่ผ่านการตรวจสอบ |
+| 401    | `UnauthorizedError`                   | ข้อมูลยืนยันตัวตนไม่ถูกต้อง หมดอายุ หรือถูกจำกัดด้วย CIDR |
+| 404    | `MessageNotFoundError`                | ไม่พบ `transactional_message_id` ที่ระบุ |
+| 406    | `RetryDataMismatchError`              | ข้อมูลสำหรับการส่งซ้ำไม่ตรงกับข้อมูลข้อความเดิม |
+| 406    | `MessageStatusNotAllowedToRetryError` | สถานะข้อความไม่อนุญาตให้ส่งซ้ำ |
+| 406    | `MaxRetryAttemptsExceededError`       | จำนวนครั้งสูงสุดในการลองส่งซ้ำถูกใช้ครบแล้ว |
+| 500    | `InternalServerError`                 | เกิดข้อผิดพลาดภายในระบบที่ไม่คาดคิด |
 
 **400 – Bad Request**
 

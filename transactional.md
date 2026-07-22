@@ -87,6 +87,22 @@ Message created.
 | `updated_at` | Timestamp of latest updated.                          |
 | `cost`       | Credit consumed (stored as Integer, multiply by 100). |
 
+#### Possible exceptions
+
+| Status | Type                                | When it happens |
+| ------ | ----------------------------------- | --------------- |
+| 400    | `ValidationError`                   | Request body is malformed or fails validation. |
+| 401    | `UnauthorizedError`                 | Credentials are invalid, expired, or restricted by CIDR. |
+| 404    | `TemplateNotFoundError`             | The specified `template_id` does not exist. |
+| 404    | `AssetNotFoundError`                | One or more `ASSET` attachments cannot be found. |
+| 406    | `InvalidSenderError`                | Sender domain is not registered or accepted. |
+| 406    | `InvalidRecipientError`             | Recipient email address or domain cannot be accepted. |
+| 406    | `InsufficientCreditError`           | Account credit balance is insufficient. |
+| 406    | `TotalAttachmentSizeExceededError`  | Total attachment size exceeds the allowed limit. |
+| 406    | `TotalAttachmentCountExceededError` | Attachment count exceeds the allowed limit. |
+| 429    | `TooManyRequestsError`              | Request volume exceeds the current rate-limit window. |
+| 500    | `InternalServerError`               | An unexpected internal error occurs. |
+
 **400 – Bad Request**
 
 When a malformed request body supplied, throws `ValidationError`.
@@ -410,9 +426,9 @@ Returns the targeted transactional message detail.
 | `status_logs`                    | StatusLogResponse[] | Chronological list of delivery state changes.                             |
 | `status_logs[].result`           | EmailMessageResult  | High-level result recorded for this status log.                           |
 | `status_logs[].status`           | MessageLogStatus    | Status recorded for the log entry.                                        |
-| `status_logs[].response`         | object \| null      | Transport/MTA response object, or `null` for system status logs.          |
-| `status_logs[].response.code`    | number \| null      | Transport/MTA response code.                                              |
-| `status_logs[].response.content` | string \| null      | Raw provider response body.                                               |
+| `status_logs[].response`         | object      | Transport/MTA response object for system status logs.          |
+| `status_logs[].response.code`    | number      | Transport/MTA response code.                                              |
+| `status_logs[].response.content` | string      | Raw provider response body.                                               |
 | `status_logs[].details`          | string              | Optional system detail for system status logs.                            |
 | `status_logs[].timestamp`        | number              | Event timestamp from provider (epoch ms).                                 |
 | `status_logs[].created`          | number              | Timestamp when the status log was persisted (epoch ms).                   |
@@ -471,6 +487,13 @@ Returns the targeted transactional message detail.
 | `SoftBounce` | `SpamContent`          | No    | Yes            |
 | `SoftBounce` | `SpamBlock`            | Yes   | Yes            |
 | `SoftBounce` | `GenericSoftBounce`    | Yes    | No             |
+
+#### Possible exceptions
+
+| Status | Type                    | When it happens |
+| ------ | ----------------------- | --------------- |
+| 401    | `UnauthorizedError`     | Credentials are invalid, expired, or restricted by CIDR. |
+| 404    | `MessageNotFoundError`  | The specified transactional message does not exist. |
 
 **401 – Unauthorized**
 
@@ -576,6 +599,18 @@ Message resend.
 | `status`     | Message status                                        |
 | `updated_at` | Timestamp of latest updated.                          |
 | `current_attempt` | Number of retry count                            |
+
+#### Possible exceptions
+
+| Status | Type                                | When it happens |
+| ------ | ----------------------------------- | --------------- |
+| 400    | `ValidationError`                   | Request body is malformed or fails validation. |
+| 401    | `UnauthorizedError`                 | Credentials are invalid, expired, or restricted by CIDR. |
+| 404    | `MessageNotFoundError`              | The specified `transactional_message_id` does not exist. |
+| 406    | `RetryDataMismatchError`            | Retry data does not match the original message data. |
+| 406    | `MessageStatusNotAllowedToRetryError` | Message status does not permit retrying. |
+| 406    | `MaxRetryAttemptsExceededError`     | Maximum retry attempts have been exceeded. |
+| 500    | `InternalServerError`               | An unexpected internal error occurs. |
 
 **400 – Bad Request**
 
