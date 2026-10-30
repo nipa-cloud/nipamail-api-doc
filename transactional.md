@@ -23,6 +23,8 @@ POST /v1/messages
     "message": {
         "sender": "<sender name>",
         "recipient": "<target email>",
+        "cc": ["copy@example.com"],
+        "bcc": ["archive@example.com"],
         "subject": "<string>",
         "template_id": "<template identifier>",     // required when html is absent
         "html": "<base64 encoded html>",            // required when template_id is absent
@@ -46,6 +48,8 @@ POST /v1/messages
 | `type`                            | Yes         | `EMAIL` for email message                                                                                     |
 | `message.sender`                  | Yes         | Sender domain registered.                                                                                     |
 | `message.recipient`               | Yes         | Single recipient email address.                                                                               |
+| `message.cc`                      | No          | Array of CC email addresses, up to 4 entries. Each entry must be a valid email address. |
+| `message.bcc`                     | No          | Array of BCC email addresses, up to 4 entries. Each entry must be a valid email address. |
 | `message.subject`                 | Yes         | Must satisfy these conditions: It should not be empty, contain emojis, or start with 'Re:' or 'Fwd:'.         |
 | `message.template_id`             | Conditional | Provide when not supplying `message.html`; references stored template.                                        |
 | `message.html`                    | Conditional | Base64-encoded HTML content when no template is referenced.                                                   |
@@ -54,6 +58,32 @@ POST /v1/messages
 | `message.attachments[].type`      | No          | Determines the `content` type: `ASSET` references asset ID from the asset manager, `RAW` uses inlined base64. |
 | `message.attachments[].content`   | No          | Payload or asset identifier depending on `type`.                                                              |
 | `message.attachments[].file_name` | No          | Friendly download filename surfaced to recipients.                                                            |
+
+#### CC and BCC rules
+
+- Keep the primary recipient in `message.recipient`; CC and BCC do not replace it.
+- Supply `message.cc` and `message.bcc` as arrays of email strings. Omit either field or use `[]` when there are no recipients of that type.
+- Each array accepts at most 4 addresses, allowing up to 9 recipients in total including the primary recipient.
+- The primary recipient must not appear in CC or BCC. Addresses must also be unique within each array and across both arrays.
+- Invalid email addresses, non-array values, or more than 4 entries in either array return HTTP 400 `ValidationError`.
+
+#### Example request body with CC and BCC
+
+Send this JSON body to `POST /v1/messages`. Replace the sender with an address on your registered sender domain. The `html` value is the Base64 encoding of `<p>Thank you.</p>`.
+
+```json
+{
+    "type": "EMAIL",
+    "message": {
+        "sender": "NipaMail <sender@yourdomain.com>",
+        "recipient": "recipient@example.com",
+        "cc": ["copy@example.com", "team@example.com"],
+        "bcc": ["archive@example.com"],
+        "subject": "Order confirmation",
+        "html": "PHA+VGhhbmsgeW91LjwvcD4="
+    }
+}
+```
 
 ---
 
@@ -74,9 +104,28 @@ Message created.
 ```json
 {
     "id": "<message id>",
-    "status": "<status>",
+    "status": "Queued",
     "updated_at": "<timestamp>",
-    "cost": <number>
+    "cost": 1,
+    "recipient": "recipient@example.com",
+    "cc": [
+        {
+            "id": "<cc message id>",
+            "status": "Queued",
+            "updated_at": "<timestamp>",
+            "cost": 1,
+            "recipient": "copy@example.com"
+        }
+    ],
+    "bcc": [
+        {
+            "id": "<bcc message id>",
+            "status": "Queued",
+            "updated_at": "<timestamp>",
+            "cost": 1,
+            "recipient": "archive@example.com"
+        }
+    ]
 }
 ```
 
@@ -85,7 +134,36 @@ Message created.
 | `id`         | Transactional message ID                              |
 | `status`     | Message status                                        |
 | `updated_at` | Timestamp of latest updated.                          |
-| `cost`       | Credit consumed (stored as Integer, multiply by 100). |
+| `cost`       | Credit cost for the primary recipient, returned in credit units (internal value divided by 100). The example value is illustrative. |
+| `recipient`  | Primary recipient email address. |
+| `cc`, `bcc`  | Arrays of results for CC and BCC recipients. Each field is omitted when its request array is empty or absent. |
+| `cc[].id`, `bcc[].id` | Message ID for that individual recipient. |
+| `cc[].recipient`, `bcc[].recipient` | Email address for that individual recipient. |
+| `cc[].status`, `bcc[].status` | Initial message status (`Queued`). |
+| `cc[].updated_at`, `bcc[].updated_at` | Timestamp of the latest update for that recipient. |
+| `cc[].cost`, `bcc[].cost` | Credit cost for that individual recipient, in the same units as the top-level `cost`. |
+
+The top-level result describes the primary recipient. Each CC and BCC recipient has its own message ID and cost; the top-level `cost` is not the sum for all recipients.
+
+Use the relevant `id`, `cc[].id`, or `bcc[].id` with `GET /v1/messages/{transactional_message_id}` to query that recipient's message status.
+
+#### Possible exceptions
+
+| Status | Type                                | When it happens |
+| ------ | ----------------------------------- | --------------- |
+| 400    | `ValidationError`                   | Request body is malformed or fails validation. |
+| 401    | `UnauthorizedError`                 | Credentials are invalid, expired, or restricted by CIDR. |
+| 404    | `TemplateNotFoundError`             | The specified `template_id` does not exist. |
+| 404    | `AssetNotFoundError`                | One or more `ASSET` attachments cannot be found. |
+| 406    | `InvalidSenderError`                | Sender domain is not registered or accepted. |
+| 406    | `InvalidRecipientError`             | Recipient email address or domain cannot be accepted. |
+| 406    | `RecipientConflictError`            | The primary recipient also appears in CC or BCC. |
+| 406    | `DuplicateEmailError`               | An address is repeated within CC or BCC, or appears in both arrays. |
+| 406    | `InsufficientCreditError`           | Account credit balance is insufficient. |
+| 406    | `TotalAttachmentSizeExceededError`  | Total attachment size exceeds the allowed limit. |
+| 406    | `TotalAttachmentCountExceededError` | Attachment count exceeds the allowed limit. |
+| 429    | `TooManyRequestsError`              | Request volume exceeds the current rate-limit window. |
+| 500    | `InternalServerError`               | An unexpected internal error occurs. |
 
 **400 – Bad Request**
 
@@ -166,6 +244,28 @@ When the recipient email address or recipient domain cannot be accepted, throws 
 
 **406 – Not Acceptable**
 
+When `message.recipient` also appears in `message.cc` or `message.bcc`, throws `RecipientConflictError`.
+
+```json
+{
+    "type": "RecipientConflictError",
+    "message": "The recipient cannot be the same as the cc or bcc."
+}
+```
+
+**406 – Not Acceptable**
+
+When an email address is repeated within either array or across CC and BCC, throws `DuplicateEmailError`.
+
+```json
+{
+    "type": "DuplicateEmailError",
+    "message": "Duplicate email addresses are not allowed in cc or bcc."
+}
+```
+
+**406 – Not Acceptable**
+
 When the credit balance on the account is insufficient, throws `InsufficientCreditError`.
 
 ```json
@@ -235,6 +335,29 @@ curl -X POST https://api.nipamail.com/v1/messages \
         "recipient": "<recipient@example.com>",
         "subject": "<subject line>",
         "html": "<base64-encoded-html>"
+    }
+}
+JSON
+```
+
+### Example: send with CC and BCC using `curl`
+
+Use distinct addresses for the primary recipient, CC, and BCC. The same `cc` and `bcc` fields can also be used with `template_id` and `template_values` instead of `html`.
+
+```bash
+curl -X POST https://api.nipamail.com/v1/messages \
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "type": "EMAIL",
+    "message": {
+        "sender": "NipaMail <sender@yourdomain.com>",
+        "recipient": "recipient@example.com",
+        "cc": ["copy@example.com", "team@example.com"],
+        "bcc": ["archive@example.com"],
+        "subject": "Order confirmation",
+        "html": "PHA+VGhhbmsgeW91LjwvcD4="
     }
 }
 JSON
@@ -501,6 +624,8 @@ When the targeted transactional message is not exists, throws `MessageNotFoundEr
 This API ensures that the message is sent again using the same request body
 as the initial send. It is useful in scenarios where the previous
 message delivery failed that eligible resend
+
+For requests originally sent with CC or BCC, preserve the exact original request body, including those arrays. The API compares a hash of the raw body, so changes to whitespace, field order, or recipient lists cause `RetryContentMismatchError`. The current resend implementation queues only the primary recipient; it does not resend CC or BCC copies.
 
 ### Request
 

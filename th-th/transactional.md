@@ -23,6 +23,8 @@ POST /v1/messages
     "message": {
         "sender": "<sender name>",
         "recipient": "<target email>",
+        "cc": ["copy@example.com"],
+        "bcc": ["archive@example.com"],
         "subject": "<string>",
         "template_id": "<template identifier>",     // ต้องระบุเมื่อไม่มี html
         "html": "<base64 encoded html>",            // ต้องระบุเมื่อไม่มี template_id
@@ -46,6 +48,8 @@ POST /v1/messages
 | `type`                            | ใช่         | ใช้ `EMAIL` สำหรับข้อความอีเมล                                                        |
 | `message.sender`                  | ใช่         | โดเมนผู้ส่งที่ลงทะเบียนแล้ว                                                          |
 | `message.recipient`               | ใช่         | อีเมลผู้รับหนึ่งราย                                                                  |
+| `message.cc`                      | ไม่ใช่      | Array ของอีเมลผู้รับสำเนา (CC) สูงสุด 4 รายการ แต่ละรายการต้องเป็นอีเมลที่ถูกต้อง |
+| `message.bcc`                     | ไม่ใช่      | Array ของอีเมลผู้รับสำเนาลับ (BCC) สูงสุด 4 รายการ แต่ละรายการต้องเป็นอีเมลที่ถูกต้อง |
 | `message.subject`                 | ใช่         | หัวข้ออีเมล ต้องไม่เป็นค่าว่าง ไม่มีอีโมจิ และไม่ขึ้นต้นด้วย `Re:` หรือ `Fwd:` |
 | `message.template_id`             | ตามเงื่อนไข | ระบุเมื่อไม่ได้ส่ง `message.html`; อ้างอิงเทมเพลตที่บันทึกไว้                        |
 | `message.html`                    | ตามเงื่อนไข | เนื้อหา HTML ที่เข้ารหัส Base64 เมื่อไม่ได้อ้างอิงเทมเพลต                            |
@@ -54,6 +58,32 @@ POST /v1/messages
 | `message.attachments[].type`      | ไม่ใช่      | กำหนดชนิดของ `content`: `ASSET` อ้างอิง asset ID จาก asset manager, `RAW` ใช้ Base64 แบบ inline |
 | `message.attachments[].content`   | ไม่ใช่      | payload หรือรหัส asset ขึ้นอยู่กับ `type`                                            |
 | `message.attachments[].file_name` | ไม่ใช่      | ชื่อไฟล์ดาวน์โหลดที่แสดงให้ผู้รับเห็น                                                |
+
+#### เงื่อนไขการใช้ CC และ BCC
+
+- ต้องระบุผู้รับหลักใน `message.recipient` เสมอ แม้จะมี CC หรือ BCC
+- ส่ง `message.cc` และ `message.bcc` เป็น array ของ string อีเมล หากไม่มีผู้รับประเภทนั้น สามารถละฟิลด์หรือส่ง `[]` ได้
+- แต่ละ array รองรับสูงสุด 4 อีเมล รวมผู้รับหลักแล้วส่งได้สูงสุด 9 รายต่อคำขอ
+- อีเมลผู้รับหลักต้องไม่ซ้ำกับ CC หรือ BCC และอีเมลในแต่ละ array รวมถึงระหว่างสอง array ต้องไม่ซ้ำกัน
+- หากอีเมลผิดรูปแบบ ค่าไม่ใช่ array หรือ array ใดมีมากกว่า 4 รายการ ระบบจะตอบ HTTP 400 `ValidationError`
+
+#### ตัวอย่าง body สำหรับส่ง CC และ BCC
+
+ส่ง JSON body นี้ไปที่ `POST /v1/messages` โดยเปลี่ยนอีเมลผู้ส่งเป็นอีเมลในโดเมนผู้ส่งที่ลงทะเบียนไว้ ส่วนค่า `html` เป็น Base64 ของ `<p>Thank you.</p>`
+
+```json
+{
+    "type": "EMAIL",
+    "message": {
+        "sender": "NipaMail <sender@yourdomain.com>",
+        "recipient": "recipient@example.com",
+        "cc": ["copy@example.com", "team@example.com"],
+        "bcc": ["archive@example.com"],
+        "subject": "Order confirmation",
+        "html": "PHA+VGhhbmsgeW91LjwvcD4="
+    }
+}
+```
 
 ---
 
@@ -74,9 +104,28 @@ POST /v1/messages
 ```json
 {
     "id": "<message id>",
-    "status": "<status>",
+    "status": "Queued",
     "updated_at": "<timestamp>",
-    "cost": <number>
+    "cost": 1,
+    "recipient": "recipient@example.com",
+    "cc": [
+        {
+            "id": "<cc message id>",
+            "status": "Queued",
+            "updated_at": "<timestamp>",
+            "cost": 1,
+            "recipient": "copy@example.com"
+        }
+    ],
+    "bcc": [
+        {
+            "id": "<bcc message id>",
+            "status": "Queued",
+            "updated_at": "<timestamp>",
+            "cost": 1,
+            "recipient": "archive@example.com"
+        }
+    ]
 }
 ```
 
@@ -85,7 +134,36 @@ POST /v1/messages
 | `id`         | รหัสข้อความธุรกรรม                       |
 | `status`     | สถานะข้อความ                             |
 | `updated_at` | เวลาที่อัปเดตล่าสุด                      |
-| `cost`       | เครดิตที่ใช้                               |
+| `cost`       | ค่าเครดิตสำหรับผู้รับหลัก แสดงเป็นหน่วยเครดิต (ค่าภายในหารด้วย 100) ตัวเลขในตัวอย่างใช้ประกอบคำอธิบาย |
+| `recipient`  | อีเมลผู้รับหลัก |
+| `cc`, `bcc`  | Array ผลลัพธ์ของผู้รับ CC และ BCC โดยจะไม่มีฟิลด์นั้นหากไม่ได้ระบุผู้รับหรือส่ง array ว่าง |
+| `cc[].id`, `bcc[].id` | รหัสข้อความของผู้รับแต่ละราย |
+| `cc[].recipient`, `bcc[].recipient` | อีเมลของผู้รับแต่ละราย |
+| `cc[].status`, `bcc[].status` | สถานะเริ่มต้นของข้อความ (`Queued`) |
+| `cc[].updated_at`, `bcc[].updated_at` | เวลาที่อัปเดตล่าสุดของผู้รับรายนั้น |
+| `cc[].cost`, `bcc[].cost` | ค่าเครดิตของผู้รับแต่ละราย ใช้หน่วยเดียวกับ `cost` ระดับบนสุด |
+
+ผลลัพธ์ระดับบนสุดเป็นข้อมูลของผู้รับหลัก ส่วนผู้รับ CC และ BCC แต่ละรายมีรหัสข้อความและค่าเครดิตของตนเอง โดย `cost` ระดับบนสุดไม่ใช่ผลรวมค่าเครดิตของผู้รับทั้งหมด
+
+ใช้ `id`, `cc[].id` หรือ `bcc[].id` ของผู้รับที่ต้องการกับ `GET /v1/messages/{transactional_message_id}` เพื่อตรวจสอบสถานะข้อความของผู้รับรายนั้น
+
+#### ข้อผิดพลาดที่อาจเกิดขึ้น
+
+| สถานะ | ประเภท | เกิดขึ้นเมื่อ |
+| ------ | ------ | ------------- |
+| 400    | `ValidationError`                   | บอดี้คำขอผิดรูปแบบหรือไม่ผ่านการตรวจสอบ |
+| 401    | `UnauthorizedError`                 | ข้อมูลยืนยันตัวตนไม่ถูกต้อง หมดอายุ หรือถูกจำกัดด้วย CIDR |
+| 404    | `TemplateNotFoundError`             | ไม่พบ `template_id` ที่ระบุ |
+| 404    | `AssetNotFoundError`                | ไม่พบไฟล์แนบชนิด `ASSET` อย่างน้อยหนึ่งรายการ |
+| 406    | `InvalidSenderError`                | โดเมนผู้ส่งไม่ได้ลงทะเบียนหรือไม่สามารถใช้งานได้ |
+| 406    | `InvalidRecipientError`             | อีเมลหรือโดเมนของผู้รับไม่สามารถรับได้ |
+| 406    | `RecipientConflictError`            | อีเมลผู้รับหลักซ้ำกับอีเมลใน CC หรือ BCC |
+| 406    | `DuplicateEmailError`               | อีเมลซ้ำภายใน CC หรือ BCC หรือซ้ำระหว่างสอง array |
+| 406    | `InsufficientCreditError`           | เครดิตในบัญชีไม่เพียงพอ |
+| 406    | `TotalAttachmentSizeExceededError`  | ขนาดรวมของไฟล์แนบเกินขีดจำกัด |
+| 406    | `TotalAttachmentCountExceededError` | จำนวนไฟล์แนบเกินขีดจำกัด |
+| 429    | `TooManyRequestsError`              | จำนวนคำขอเกินช่วง rate limit ปัจจุบัน |
+| 500    | `InternalServerError`               | เกิดข้อผิดพลาดภายในระบบที่ไม่คาดคิด |
 
 **400 – Bad Request**
 
@@ -166,6 +244,28 @@ POST /v1/messages
 
 **406 – Not Acceptable**
 
+เมื่อ `message.recipient` ซ้ำกับอีเมลใน `message.cc` หรือ `message.bcc` ระบบจะตอบกลับ `RecipientConflictError`
+
+```json
+{
+    "type": "RecipientConflictError",
+    "message": "The recipient cannot be the same as the cc or bcc."
+}
+```
+
+**406 – Not Acceptable**
+
+เมื่ออีเมลซ้ำภายใน array เดียวกัน หรือซ้ำระหว่าง CC และ BCC ระบบจะตอบกลับ `DuplicateEmailError`
+
+```json
+{
+    "type": "DuplicateEmailError",
+    "message": "Duplicate email addresses are not allowed in cc or bcc."
+}
+```
+
+**406 – Not Acceptable**
+
 เมื่อยอดเครดิตในบัญชีไม่เพียงพอ ระบบจะตอบกลับ `InsufficientCreditError`
 
 ```json
@@ -235,6 +335,29 @@ curl -X POST https://api.nipamail.com/v1/messages \
         "recipient": "<recipient@example.com>",
         "subject": "<subject line>",
         "html": "<base64-encoded-html>"
+    }
+}
+JSON
+```
+
+### ตัวอย่าง: ส่งอีเมลพร้อม CC และ BCC ด้วย `curl`
+
+ใช้อีเมลผู้รับหลัก CC และ BCC ที่ไม่ซ้ำกัน โดยสามารถใช้ฟิลด์ `cc` และ `bcc` ร่วมกับ `template_id` และ `template_values` แทน `html` ได้เช่นกัน
+
+```bash
+curl -X POST https://api.nipamail.com/v1/messages \
+    -H "Authorization: Bearer <TOKEN>" \
+    -H "Content-Type: application/json" \
+    --data @- <<'JSON'
+{
+    "type": "EMAIL",
+    "message": {
+        "sender": "NipaMail <sender@yourdomain.com>",
+        "recipient": "recipient@example.com",
+        "cc": ["copy@example.com", "team@example.com"],
+        "bcc": ["archive@example.com"],
+        "subject": "Order confirmation",
+        "html": "PHA+VGhhbmsgeW91LjwvcD4="
     }
 }
 JSON
@@ -499,6 +622,8 @@ GET /v1/messages/{transactional_message_id}
 **แพ็กเกจ: Enterprise**
 
 API นี้ช่วยส่งข้อความซ้ำโดยใช้บอดี้คำขอเดียวกับการส่งครั้งแรก เหมาะสำหรับกรณีที่การส่งข้อความก่อนหน้าล้มเหลวและเข้าเงื่อนไขให้ส่งซ้ำได้
+
+หากคำขอเดิมมี CC หรือ BCC ต้องส่งบอดี้เดิมทุกประการ รวมถึง array เหล่านั้น เนื่องจาก API เปรียบเทียบ hash ของบอดี้ดิบ การเปลี่ยนช่องว่าง ลำดับฟิลด์ หรือรายชื่อผู้รับจะทำให้เกิด `RetryContentMismatchError` ทั้งนี้การส่งซ้ำในปัจจุบันจะเข้าคิวเฉพาะผู้รับหลัก โดยไม่ส่งสำเนา CC หรือ BCC ซ้ำ
 
 ### คำขอ
 
